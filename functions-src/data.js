@@ -3,8 +3,15 @@ exports.handler = async function(event, context) {
   const headers = {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Headers': 'Content-Type',
-    'Access-Control-Allow-Methods': 'GET, OPTIONS'
+    'Access-Control-Allow-Methods': 'GET, OPTIONS',
+    'Content-Type': 'application/json'
   };
+  
+  // Debug info
+  console.log('Data function called');
+  console.log('HTTP Method:', event.httpMethod);
+  console.log('Path:', event.path);
+  console.log('Query params:', event.queryStringParameters);
   
   // Handle preflight requests
   if (event.httpMethod === 'OPTIONS') {
@@ -17,10 +24,14 @@ exports.handler = async function(event, context) {
   try {
     // Make sure this is a GET request
     if (event.httpMethod !== 'GET') {
+      console.log('Method not allowed:', event.httpMethod);
       return {
         statusCode: 405,
         headers,
-        body: JSON.stringify({ error: 'Method not allowed' })
+        body: JSON.stringify({ 
+          error: 'Method not allowed', 
+          method: event.httpMethod 
+        })
       };
     }
 
@@ -31,6 +42,7 @@ exports.handler = async function(event, context) {
     console.log('Data function called with type:', type);
     
     if (type === 'topics') {
+      console.log('Returning topics');
       // Return topics
       const topics = [
         { id: 'intro', name: 'Introduction to the Course' },
@@ -46,6 +58,7 @@ exports.handler = async function(event, context) {
       };
     } 
     else if (type === 'videos') {
+      console.log('Returning videos');
       // Return videos/resources
       const resources = {
         videos: [
@@ -75,10 +88,14 @@ exports.handler = async function(event, context) {
       };
     }
     else {
+      console.log('Type parameter missing or invalid:', type);
       return {
         statusCode: 404,
         headers,
-        body: JSON.stringify({ error: 'Endpoint not found or type parameter missing', requestedType: type })
+        body: JSON.stringify({ 
+          error: 'Endpoint not found or type parameter missing', 
+          requestedType: type 
+        })
       };
     }
   } catch (error) {
@@ -86,7 +103,10 @@ exports.handler = async function(event, context) {
     return {
       statusCode: 500,
       headers,
-      body: JSON.stringify({ error: 'Internal server error', message: error.message })
+      body: JSON.stringify({ 
+        error: 'Internal server error', 
+        message: error.message 
+      })
     };
   }
 }; 

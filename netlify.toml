@@ -36,27 +36,6 @@
   status = 200
   query = { type = "videos" }
 
-# Direct access to all function endpoints
-[[redirects]]
-  from = "/.netlify/functions/data"
-  to = "/.netlify/functions/data"
-  status = 200
-
-[[redirects]]
-  from = "/.netlify/functions/chat"
-  to = "/.netlify/functions/chat"
-  status = 200
-
-[[redirects]]
-  from = "/.netlify/functions/flashcards"
-  to = "/.netlify/functions/flashcards"
-  status = 200
-
-[[redirects]]
-  from = "/.netlify/functions/quiz"
-  to = "/.netlify/functions/quiz"
-  status = 200
-
 [[redirects]]
   from = "/*"
   to = "/index.html"

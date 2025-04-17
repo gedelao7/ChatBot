@@ -63,8 +63,13 @@ exports.handler = async function(event, context) {
   const headers = {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Headers': 'Content-Type',
-    'Access-Control-Allow-Methods': 'POST, OPTIONS'
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Content-Type': 'application/json'
   };
+  
+  // Debug info
+  console.log('Chat function called');
+  console.log('HTTP Method:', event.httpMethod);
   
   // Handle preflight requests
   if (event.httpMethod === 'OPTIONS') {
@@ -77,17 +82,24 @@ exports.handler = async function(event, context) {
   try {
     // Make sure this is a POST request
     if (event.httpMethod !== 'POST') {
+      console.log('Method not allowed:', event.httpMethod);
       return {
         statusCode: 405,
         headers,
-        body: JSON.stringify({ error: 'Method not allowed' })
+        body: JSON.stringify({ 
+          error: 'Method not allowed', 
+          method: event.httpMethod,
+          status: 'error'
+        })
       };
     }
 
     // Parse the body
     let body;
     try {
+      console.log('Request body:', event.body);
       body = JSON.parse(event.body);
+      console.log('Parsed body:', body);
     } catch (error) {
       console.error('Error parsing JSON body:', error);
       return {
@@ -95,6 +107,7 @@ exports.handler = async function(event, context) {
         headers,
         body: JSON.stringify({ 
           error: 'Invalid JSON in request body',
+          message: error.message,
           status: 'error'
         })
       };
@@ -103,6 +116,7 @@ exports.handler = async function(event, context) {
     const { message, context } = body;
     
     if (!message) {
+      console.log('Message is required');
       return {
         statusCode: 400,
         headers,
@@ -113,11 +127,15 @@ exports.handler = async function(event, context) {
       };
     }
     
+    console.log('Processing message:', message);
+    console.log('Context:', context);
+
     // Get sample transcript
     const transcript = getSampleTranscript();
     
     // Check if the question is about the transcript
     const isRelevantQuestion = isQuestionAboutTranscript(message, transcript);
+    console.log('Is relevant question:', isRelevantQuestion);
     
     // If the context is specifically about transcripts and the question is not relevant
     if (context === 'transcripts' && !isRelevantQuestion) {
@@ -132,16 +150,35 @@ exports.handler = async function(event, context) {
       };
     }
     
-    // Create prompt with context
-    let systemPrompt = 'You are a helpful course assistant that answers questions based on lecture transcripts. ';
-    systemPrompt += 'ONLY answer questions related to the course content provided in the transcripts. ';
-    systemPrompt += 'If asked about topics outside the transcripts, respond with: "I can only answer questions about the lecture transcripts." ';
-    systemPrompt += 'Keep responses concise and informative.';
+    // Provide fallback response directly without calling API
+    // This is temporary to help debug the deployment
+    const fallbackResponse = getFallbackResponse(message);
     
-    // Add transcript context
-    systemPrompt += '\n\nHere is the relevant course content: ' + transcript.content;
+    console.log('Returning fallback response');
+    return {
+      statusCode: 200,
+      headers,
+      body: JSON.stringify({ 
+        response: fallbackResponse + " (Fallback mode active while we're debugging the deployment.)",
+        fallback: true,
+        status: 'success'
+      })
+    };
 
+    // Uncomment below when ready to use OpenAI again
+    /*
     try {
+      // Create prompt with context
+      let systemPrompt = 'You are a helpful course assistant that answers questions based on lecture transcripts. ';
+      systemPrompt += 'ONLY answer questions related to the course content provided in the transcripts. ';
+      systemPrompt += 'If asked about topics outside the transcripts, respond with: "I can only answer questions about the lecture transcripts." ';
+      systemPrompt += 'Keep responses concise and informative.';
+      
+      // Add transcript context
+      systemPrompt += '\n\nHere is the relevant course content: ' + transcript.content;
+
+      console.log('Calling OpenAI API');
+      
       // Call OpenAI API
       const completion = await openai.createChatCompletion({
         model: 'gpt-3.5-turbo',
@@ -152,6 +189,8 @@ exports.handler = async function(event, context) {
         max_tokens: 500,
         temperature: 0.7
       });
+      
+      console.log('OpenAI response received');
       
       return {
         statusCode: 200,
@@ -177,6 +216,7 @@ exports.handler = async function(event, context) {
         })
       };
     }
+    */
   } catch (error) {
     console.error('Chat API error:', error);
     return {

@@ -109,6 +109,8 @@ document.addEventListener('DOMContentLoaded', function() {
     
     while (attempts < maxAttempts) {
       try {
+        console.log(`Attempt ${attempts + 1} to send message to ${apiBaseUrl}/chat`);
+        
         const response = await fetch(`${apiBaseUrl}/chat`, {
           method: 'POST',
           headers: {
@@ -121,17 +123,25 @@ document.addEventListener('DOMContentLoaded', function() {
           })
         });
         
-        if (!response.ok) {
-          throw new Error(`Server responded with status: ${response.status}`);
-        }
-        
+        console.log('Response status:', response.status);
+        console.log('Response headers:', response.headers);
+
         const contentType = response.headers.get('content-type');
-        if (!contentType || !contentType.includes('application/json')) {
-          throw new Error('Response is not JSON');
-        }
+        console.log('Content-Type:', contentType);
         
-        const data = await response.json();
-        console.log('Response data:', data);
+        // Get the raw text first for debugging
+        const responseText = await response.text();
+        console.log('Raw response:', responseText);
+        
+        let data;
+        try {
+          // Try to parse the response as JSON
+          data = JSON.parse(responseText);
+          console.log('Parsed JSON data:', data);
+        } catch (jsonError) {
+          console.error('JSON parse error:', jsonError);
+          throw new Error('Response is not valid JSON: ' + responseText.substring(0, 100));
+        }
         
         // Remove loading indicator
         if (chatMessages.contains(loadingBubble)) {
