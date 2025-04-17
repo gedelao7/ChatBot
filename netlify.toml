@@ -10,8 +10,28 @@
 
 # Redirects and rewrites
 [[redirects]]
-  from = "/api/*"
-  to = "/.netlify/functions/api/:splat"
+  from = "/api/chat"
+  to = "/.netlify/functions/chat"
+  status = 200
+
+[[redirects]]
+  from = "/api/flashcards"
+  to = "/.netlify/functions/flashcards"
+  status = 200
+
+[[redirects]]
+  from = "/api/quiz"
+  to = "/.netlify/functions/quiz"
+  status = 200
+
+[[redirects]]
+  from = "/api/topics"
+  to = "/.netlify/functions/data?type=topics"
+  status = 200
+
+[[redirects]]
+  from = "/api/videos"
+  to = "/.netlify/functions/data?type=videos"
   status = 200
 
 [[redirects]]

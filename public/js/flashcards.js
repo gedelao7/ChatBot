@@ -11,48 +11,30 @@ document.addEventListener('DOMContentLoaded', () => {
   let flashcards = [];
   let currentCardIndex = 0;
   
-  // Get the base URL for API endpoints
-  const getApiBase = () => {
-    return window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
-      ? '/api' // Development
-      : '/.netlify/functions/api'; // Production on Netlify
-  };
-  
-  // Fetch topics
-  const fetchTopics = async () => {
+  // Function to fetch topics
+  async function fetchTopics() {
     try {
-      const response = await fetch(`${getApiBase()}/topics`);
+      const response = await fetch('/.netlify/functions/data?type=topics');
       if (!response.ok) {
         throw new Error('Failed to fetch topics');
       }
       
       const data = await response.json();
-      populateTopics(data.topics);
+      
+      // Populate topics dropdown
+      data.topics.forEach(topic => {
+        const option = document.createElement('option');
+        option.value = topic.id;
+        option.textContent = topic.name;
+        flashcardTopic.appendChild(option);
+      });
     } catch (error) {
       console.error('Error fetching topics:', error);
     }
-  };
+  }
   
-  // Populate topic dropdown
-  const populateTopics = (topics) => {
-    if (!flashcardTopic) return;
-    
-    // Clear existing options except the first one
-    while (flashcardTopic.options.length > 1) {
-      flashcardTopic.remove(1);
-    }
-    
-    // Add new options
-    topics.forEach(topic => {
-      const option = document.createElement('option');
-      option.value = topic.id;
-      option.textContent = topic.name;
-      flashcardTopic.appendChild(option);
-    });
-  };
-  
-  // Generate flashcards
-  const generateFlashcards = async () => {
+  // Function to generate flashcards
+  async function generateFlashcards() {
     try {
       // Show loading state
       flashcardsContainer.innerHTML = `
@@ -66,7 +48,7 @@ document.addEventListener('DOMContentLoaded', () => {
       
       const topic = flashcardTopic.value;
       
-      const response = await fetch(`${getApiBase()}/flashcards`, {
+      const response = await fetch('/.netlify/functions/flashcards', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -100,10 +82,10 @@ document.addEventListener('DOMContentLoaded', () => {
         </div>
       `;
     }
-  };
+  }
   
-  // Display current flashcard
-  const displayFlashcard = (index) => {
+  // Function to display a flashcard
+  function displayFlashcard(index) {
     if (!flashcards.length) return;
     
     currentCardIndex = index;
@@ -165,7 +147,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       });
     }
-  };
+  }
   
   // Update card counter
   const updateCardCounter = () => {

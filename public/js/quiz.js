@@ -11,7 +11,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Function to fetch topics
     async function fetchTopics() {
         try {
-            const response = await fetch('/.netlify/functions/api/topics');
+            const response = await fetch('/.netlify/functions/data?type=topics');
             if (!response.ok) {
                 throw new Error('Failed to fetch topics');
             }
@@ -46,7 +46,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const topic = quizTopic.value;
             const difficulty = quizDifficulty.value;
             
-            const response = await fetch('/.netlify/functions/api/quiz', {
+            const response = await fetch('/.netlify/functions/quiz', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'

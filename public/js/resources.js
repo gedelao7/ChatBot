@@ -32,7 +32,7 @@ document.addEventListener('DOMContentLoaded', () => {
         </div>
       `;
       
-      const response = await fetch(`${getApiBase()}/videos`);
+      const response = await fetch('/.netlify/functions/data?type=videos');
       if (!response.ok) {
         throw new Error('Failed to fetch resources');
       }
