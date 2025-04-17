@@ -1,0 +1,29 @@
+{
+  "name": "course-chatbot",
+  "version": "1.0.0",
+  "description": "Course Chatbot trained on lecture transcripts",
+  "main": "server/index.js",
+  "scripts": {
+    "start": "node server/index.js",
+    "dev": "nodemon server/index.js",
+    "build": "netlify-lambda build functions-src",
+    "netlify:dev": "netlify dev"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "dotenv": "^16.3.1",
+    "openai": "^4.20.1",
+    "cors": "^2.8.5",
+    "body-parser": "^1.20.2",
+    "multer": "^1.4.5-lts.1",
+    "pdf-parse": "^1.1.1",
+    "mammoth": "^1.6.0",
+    "cheerio": "^1.0.0-rc.12",
+    "serverless-http": "^3.2.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1",
+    "netlify-cli": "^17.15.3",
+    "netlify-lambda": "^2.0.16"
+  }
+} 
