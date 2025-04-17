@@ -1,4 +1,5 @@
 const { Configuration, OpenAIApi } = require('openai');
+const transcriptManager = require('./data/transcripts');
 
 // Initialize OpenAI API
 const configuration = new Configuration({
@@ -6,51 +7,46 @@ const configuration = new Configuration({
 });
 const openai = new OpenAIApi(configuration);
 
-// Load sample transcript data
-const getSampleTranscript = () => {
-  return {
-    id: 'sample-transcript',
-    title: 'Introduction to Machine Learning',
-    content: `INTRODUCTION TO MACHINE LEARNING
-LECTURE 1: FOUNDATIONS AND PRINCIPLES
-
-Machine learning is a subset of artificial intelligence that focuses on building systems that can learn from data, identify patterns, and make decisions with minimal human intervention. Unlike traditional programming where we explicitly code rules, in machine learning, we train models on data and let them discover patterns on their own.
-
-Machine learning is often categorized into three main types:
-
-1. Supervised Learning: Here, we train models on labeled data. The algorithm learns to map inputs to correct outputs based on example pairs.
-2. Unsupervised Learning: In this approach, we use unlabeled data and let the algorithm find structure on its own.
-3. Reinforcement Learning: This involves training agents to make sequences of decisions by receiving rewards or penalties.
-
-The significance of machine learning in today's world cannot be overstated. It powers numerous applications that we interact with daily, from recommendation systems to virtual assistants, email spam filters, fraud detection, medical diagnosis, self-driving cars, and natural language processing.`
-  };
-};
-
 // Function to check if a question is related to the transcript
 const isQuestionAboutTranscript = (question) => {
-  // List of keywords from the transcript
-  const keywords = [
+  // Get transcript-specific keywords
+  const transcriptKeywords = [];
+  transcriptManager.getAllTranscripts().forEach(transcript => {
+    const fullTranscript = transcriptManager.getTranscriptById(transcript.id);
+    const title = fullTranscript.title.toLowerCase();
+    // Add transcript title words as keywords
+    title.split(/\s+/).forEach(word => {
+      if (word.length > 3) transcriptKeywords.push(word);
+    });
+  });
+  
+  // General subject keywords
+  const subjectKeywords = [
     'machine learning', 'artificial intelligence', 'ai', 'data', 'patterns', 
     'supervised learning', 'unsupervised learning', 'reinforcement learning',
     'labeled data', 'unlabeled data', 'algorithm', 'models', 'training',
     'recommendation systems', 'virtual assistants', 'spam filters', 
     'fraud detection', 'medical diagnosis', 'self-driving cars', 
     'natural language processing', 'nlp', 'ml', 'deep learning',
-    'neural networks', 'algorithms', 'data science', 'course'
+    'neural networks', 'algorithms', 'data science', 'course',
+    'cardiopulmonary', 'heart', 'lungs', 'breathing', 'cardiac',
+    'pulmonary', 'respiratory', 'physical therapy', 'rehabilitation'
   ];
+  
+  const allKeywords = [...new Set([...transcriptKeywords, ...subjectKeywords])];
   
   // Convert question to lowercase for case-insensitive matching
   const lowerQuestion = question.toLowerCase();
   
   // Check if any keyword is in the question
-  for (const keyword of keywords) {
+  for (const keyword of allKeywords) {
     if (lowerQuestion.includes(keyword.toLowerCase())) {
       console.log(`Found keyword match: ${keyword}`);
       return true;
     }
   }
   
-  // Treat almost anything as related for now as we're in early testing
+  // During testing, we'll still allow most questions
   console.log('No keyword match found, but treating as in-scope for testing');
   return true;
 };
@@ -66,6 +62,11 @@ const getFallbackResponse = (message) => {
   ];
   
   return responses[Math.floor(Math.random() * responses.length)];
+};
+
+// Function to get relevant transcript content for a question
+const getRelevantTranscriptContent = (question) => {
+  return transcriptManager.getRelevantContent(question);
 };
 
 exports.handler = async function(event, context) {
@@ -139,9 +140,6 @@ exports.handler = async function(event, context) {
     
     console.log('Processing message:', message);
     console.log('Context:', context);
-
-    // Get sample transcript
-    const transcript = getSampleTranscript();
     
     // Check if the question is about the transcript
     const isRelevantQuestion = isQuestionAboutTranscript(message);
@@ -161,14 +159,41 @@ exports.handler = async function(event, context) {
     }
     
     try {
+      // Get relevant transcript content
+      const relevantContent = getRelevantTranscriptContent(message);
+      console.log('Relevant content found:', relevantContent.length > 0);
+      
       // Create prompt with context
       let systemPrompt = 'You are a helpful course assistant that answers questions based on lecture transcripts. ';
-      systemPrompt += 'Answer questions related to the course content provided in the transcripts. ';
-      systemPrompt += 'If asked about topics outside the transcripts, still try to be helpful with general knowledge about machine learning. ';
+      
+      if (relevantContent.length > 0) {
+        systemPrompt += 'Answer questions using ONLY the information from the provided transcript excerpts. ';
+        systemPrompt += 'If the information needed is not in the excerpts, say "I don\'t see that information in the lecture notes." ';
+      } else {
+        systemPrompt += 'Answer questions related to the course topics. ';
+        systemPrompt += 'For questions outside your knowledge, acknowledge the limitations of your information. ';
+      }
+      
       systemPrompt += 'Keep responses concise and informative.';
       
-      // Add transcript context
-      systemPrompt += '\n\nHere is the relevant course content: ' + transcript.content;
+      // Add transcript context if available
+      if (relevantContent.length > 0) {
+        systemPrompt += '\n\nHere are the relevant lecture excerpts:\n\n';
+        relevantContent.forEach((content, index) => {
+          systemPrompt += `EXCERPT ${index + 1}:\n${content}\n\n`;
+        });
+      } else {
+        // Add general transcript summaries
+        systemPrompt += '\n\nHere are the course topics:\n\n';
+        transcriptManager.getAllTranscripts().forEach(transcript => {
+          const fullTranscript = transcriptManager.getTranscriptById(transcript.id);
+          systemPrompt += `${fullTranscript.title}:\n`;
+          
+          // Add first paragraph of each transcript as a summary
+          const firstParagraph = fullTranscript.content.split('\n\n')[0];
+          systemPrompt += `${firstParagraph}\n\n`;
+        });
+      }
 
       console.log('Calling OpenAI API');
       
@@ -205,7 +230,7 @@ exports.handler = async function(event, context) {
         body: JSON.stringify({ 
           response: fallbackResponse + " (Note: OpenAI API currently unavailable. This is a fallback response.)",
           fallback: true,
-          status: 'success'
+          status: 'error'
         })
       };
     }
