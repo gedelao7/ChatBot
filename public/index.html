@@ -5,191 +5,95 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Course Chatbot</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
-  <link rel="stylesheet" href="css/styles.css">
+  <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-  <!-- Main content area if needed -->
-  <div class="main-content-area">
-    <!-- This can be your main page content -->
-  </div>
-  
-  <!-- Chat Widget -->
-  <div class="chat-widget" id="chatWidget">
-    <!-- Chat Widget Button -->
-    <button class="chat-widget-button" id="chatWidgetButton">
-      <i class="bi bi-chat-dots-fill"></i>
-    </button>
-    
-    <!-- Chat Widget Window -->
-    <div class="chat-widget-window" id="chatWidgetWindow">
-      <!-- Chat Header -->
-      <div class="chat-widget-header">
-        <h5>Course Assistant</h5>
-        <button class="chat-widget-close" id="chatWidgetClose">
-          <i class="bi bi-x-lg"></i>
-        </button>
-      </div>
-      
-      <!-- Chat Messages -->
-      <div class="chat-messages" id="chatMessages">
-        <div class="message system">
-          <div class="message-content">
-            <p>Hello! I'm your course assistant. Ask me anything about the lecture content.</p>
-          </div>
-        </div>
-      </div>
-      
-      <!-- Suggestion Bubbles -->
-      <div class="suggestion-bubbles" id="suggestionBubbles">
-        <button class="suggestion-bubble" data-action="flashcard">
-          <i class="bi bi-card-list"></i> Generate Flashcards
-        </button>
-        <button class="suggestion-bubble" data-action="quiz">
-          <i class="bi bi-question-circle"></i> Take a Quiz
-        </button>
-        <button class="suggestion-bubble" data-action="video">
-          <i class="bi bi-globe"></i> External Resources
-        </button>
-      </div>
-      
-      <!-- Chat Input -->
-      <div class="chat-input-container">
-        <div class="input-group">
-          <input type="text" id="userInput" class="form-control" placeholder="Ask a question...">
-          <button id="sendBtn" class="btn btn-primary">
-            <i class="bi bi-send"></i>
-          </button>
+  <header class="bg-primary text-white py-3">
+    <div class="container">
+      <div class="d-flex justify-content-between align-items-center">
+        <h1 class="mb-0">Course Chatbot</h1>
+        <div>
+          <button class="btn btn-light" data-bs-toggle="modal" data-bs-target="#flashcardsModal">Flashcards</button>
+          <button class="btn btn-light" data-bs-toggle="modal" data-bs-target="#quizModal">Quiz</button>
+          <button class="btn btn-light" data-bs-toggle="modal" data-bs-target="#resourcesModal">External Resources</button>
         </div>
       </div>
     </div>
+  </header>
+
+  <main class="container my-5">
+    <div class="row">
+      <div class="col-md-8 offset-md-2">
+        <div class="card shadow">
+          <div class="card-header bg-primary text-white">
+            <h2 class="h4 mb-0">Course Assistant</h2>
+          </div>
+          <div class="card-body">
+            <p>Welcome to the Course Chatbot! This AI assistant can help you understand course materials by:</p>
+            <ul>
+              <li>Answering questions about lecture content</li>
+              <li>Generating flashcards for study</li>
+              <li>Creating quizzes to test your knowledge</li>
+              <li>Providing related external resources</li>
+            </ul>
+            <p>Click on the chat icon in the bottom right to get started!</p>
+            
+            <div class="suggestion-container mt-4">
+              <h5>Try asking:</h5>
+              <div class="d-flex flex-wrap gap-2">
+                <div class="suggestion-bubble">What is machine learning?</div>
+                <div class="suggestion-bubble">Explain supervised learning</div>
+                <div class="suggestion-bubble">What are the applications of ML?</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Chat Widget -->
+  <div id="chatWidget" class="chat-widget">
+    <div class="chat-header">
+      <h3>Course Assistant</h3>
+      <button id="chatWidgetClose" class="chat-widget-close">&times;</button>
+    </div>
+    <div id="chatMessages" class="chat-messages">
+      <div class="chat-bubble bot">
+        Hi! I'm your course assistant. Ask me anything about the course materials.
+      </div>
+    </div>
+    <div class="chat-input">
+      <input type="text" id="messageInput" placeholder="Type your question...">
+      <button id="sendButton">Send</button>
+    </div>
   </div>
-  
-  <!-- Flashcard Modal -->
-  <div class="modal fade" id="flashcardModal" tabindex="-1" aria-hidden="true">
+  <button id="chatWidgetButton" class="chat-widget-button">
+    <img src="images/chat-icon.png" alt="Chat" width="24" height="24">
+  </button>
+
+  <!-- Flashcards Modal -->
+  <div class="modal fade" id="flashcardsModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-lg">
       <div class="modal-content">
-        <div class="modal-header">
+        <div class="modal-header bg-primary text-white">
           <h5 class="modal-title">Flashcards</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
         <div class="modal-body">
-          <div class="flashcard-controls mb-3">
+          <div class="mb-3">
+            <label for="flashcardTopic" class="form-label">Select Topic:</label>
             <select id="flashcardTopic" class="form-select">
               <option value="">All Topics</option>
-            </select>
-            <button id="newFlashcardBtn" class="btn btn-primary mt-2">Generate Flashcards</button>
-          </div>
-          <div class="flashcard-deck">
-            <div class="flashcard">
-              <div class="flashcard-inner">
-                <div class="flashcard-front">
-                  <p>What is the main purpose of a learning management system?</p>
-                </div>
-                <div class="flashcard-back">
-                  <p>To provide a platform for organizing, delivering, and tracking educational content and learning activities.</p>
-                </div>
-              </div>
-            </div>
-          </div>
-          <div class="flashcard-navigation">
-            <button id="prevCardBtn" class="btn btn-outline-primary"><i class="bi bi-arrow-left"></i></button>
-            <span id="cardCounter">Card 1 of 5</span>
-            <button id="nextCardBtn" class="btn btn-outline-primary"><i class="bi bi-arrow-right"></i></button>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-  
-  <!-- Quiz Modal -->
-  <div class="modal fade" id="quizModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title">Quiz</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-        </div>
-        <div class="modal-body">
-          <div class="quiz-controls mb-3">
-            <div class="row">
-              <div class="col-md-6">
-                <select id="quizTopic" class="form-select">
-                  <option value="">All Topics</option>
-                </select>
-              </div>
-              <div class="col-md-6">
-                <select id="quizDifficulty" class="form-select">
-                  <option value="easy">Easy</option>
-                  <option value="medium">Medium</option>
-                  <option value="hard">Hard</option>
-                </select>
-              </div>
-            </div>
-            <button id="newQuizBtn" class="btn btn-primary mt-2">Generate Quiz</button>
-          </div>
-          <div class="quiz-content">
-            <div class="quiz-question">
-              <h4>Question 1 of 5</h4>
-              <p>Which of the following is a benefit of using a flipped classroom model?</p>
-              <div class="quiz-options">
-                <div class="form-check">
-                  <input class="form-check-input" type="radio" name="quiz1" id="q1a">
-                  <label class="form-check-label" for="q1a">Reduced student engagement</label>
-                </div>
-                <div class="form-check">
-                  <input class="form-check-input" type="radio" name="quiz1" id="q1b">
-                  <label class="form-check-label" for="q1b">More in-class time for active learning</label>
-                </div>
-                <div class="form-check">
-                  <input class="form-check-input" type="radio" name="quiz1" id="q1c">
-                  <label class="form-check-label" for="q1c">Less preparation time for instructors</label>
-                </div>
-                <div class="form-check">
-                  <input class="form-check-input" type="radio" name="quiz1" id="q1d">
-                  <label class="form-check-label" for="q1d">Simplified assessment methods</label>
-                </div>
-              </div>
-            </div>
-            <div class="quiz-navigation mt-3">
-              <button id="submitQuizBtn" class="btn btn-success">Submit Answer</button>
-              <button id="nextQuestionBtn" class="btn btn-primary ms-2">Next Question</button>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-  
-  <!-- External Resources Modal -->
-  <div class="modal fade" id="videoModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title">External Resources</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-        </div>
-        <div class="modal-body">
-          <div class="resource-controls mb-3">
-            <select id="resourceType" class="form-select mb-3">
-              <option value="video">YouTube Videos</option>
-              <option value="website">Websites</option>
-            </select>
-            <select id="videoSelector" class="form-select">
-              <option value="">Select a resource</option>
+              <!-- Topics will be loaded dynamically -->
             </select>
           </div>
-          <div class="video-player">
-            <div class="ratio ratio-16x9">
-              <div class="video-placeholder d-flex align-items-center justify-content-center bg-light">
-                <p>Select a resource to view</p>
-              </div>
-            </div>
-          </div>
-          <div class="resource-description mt-3">
-            <h5>Resource Description</h5>
-            <div class="transcript-content p-3 bg-light">
-              <p>Description will appear here when a resource is selected.</p>
+          <button id="generateFlashcardsBtn" class="btn btn-primary mb-3">Generate Flashcards</button>
+          
+          <div id="flashcardsContainer" class="mt-4">
+            <!-- Flashcards will be generated here -->
+            <div class="text-center">
+              <p>Select a topic and click "Generate Flashcards" to begin studying!</p>
             </div>
           </div>
         </div>
@@ -197,38 +101,87 @@
     </div>
   </div>
 
+  <!-- Quiz Modal -->
+  <div class="modal fade" id="quizModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header bg-primary text-white">
+          <h5 class="modal-title">Quiz</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <div class="row mb-3">
+            <div class="col-md-6">
+              <label for="quizTopic" class="form-label">Select Topic:</label>
+              <select id="quizTopic" class="form-select">
+                <option value="">All Topics</option>
+                <!-- Topics will be loaded dynamically -->
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label for="quizDifficulty" class="form-label">Difficulty:</label>
+              <select id="quizDifficulty" class="form-select">
+                <option value="easy">Easy</option>
+                <option value="medium" selected>Medium</option>
+                <option value="hard">Hard</option>
+              </select>
+            </div>
+          </div>
+          <button id="generateQuizBtn" class="btn btn-primary mb-3">Generate Quiz</button>
+          
+          <div id="quizContainer" class="mt-4">
+            <!-- Quiz will be generated here -->
+            <div class="text-center">
+              <p>Select a topic and difficulty, then click "Generate Quiz" to test your knowledge!</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Resources Modal -->
+  <div class="modal fade" id="resourcesModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header bg-primary text-white">
+          <h5 class="modal-title">External Resources</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <div id="resourcesContainer">
+            <!-- Resources will be loaded here -->
+            <div class="text-center">
+              <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+              </div>
+              <p>Loading resources...</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
   <script src="js/main.js"></script>
   <script src="js/flashcards.js"></script>
   <script src="js/quiz.js"></script>
   <script src="js/resources.js"></script>
-  
-  <!-- Initialize modals explicitly -->
   <script>
+    // Initialize Bootstrap modals
     document.addEventListener('DOMContentLoaded', function() {
-      // Initialize the Bootstrap modals
-      var flashcardModalEl = document.getElementById('flashcardModal');
-      var quizModalEl = document.getElementById('quizModal');
-      var videoModalEl = document.getElementById('videoModal');
+      const flashcardsModal = new bootstrap.Modal(document.getElementById('flashcardsModal'));
+      const quizModal = new bootstrap.Modal(document.getElementById('quizModal'));
+      const resourcesModal = new bootstrap.Modal(document.getElementById('resourcesModal'));
       
-      // Create modal instances if they exist
-      window.flashcardModal = flashcardModalEl ? new bootstrap.Modal(flashcardModalEl) : null;
-      window.quizModal = quizModalEl ? new bootstrap.Modal(quizModalEl) : null;
-      window.videoModal = videoModalEl ? new bootstrap.Modal(videoModalEl) : null;
-      
-      // Set up suggestion bubble listeners directly
-      document.querySelectorAll('.suggestion-bubble').forEach(function(bubble) {
-        bubble.addEventListener('click', function() {
-          var action = this.dataset.action;
-          console.log('Bubble clicked:', action);
-          
-          if (action === 'flashcard' && window.flashcardModal) {
-            window.flashcardModal.show();
-          } else if (action === 'quiz' && window.quizModal) {
-            window.quizModal.show();
-          } else if (action === 'video' && window.videoModal) {
-            window.videoModal.show();
-          }
+      // Add event listeners for suggestion bubbles
+      const suggestionBubbles = document.querySelectorAll('.suggestion-bubble');
+      suggestionBubbles.forEach(bubble => {
+        bubble.addEventListener('click', () => {
+          document.getElementById('messageInput').value = bubble.textContent;
+          document.getElementById('sendButton').click();
         });
       });
     });

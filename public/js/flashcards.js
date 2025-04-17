@@ -1,8 +1,8 @@
 document.addEventListener('DOMContentLoaded', () => {
   // DOM Elements
   const flashcardTopic = document.getElementById('flashcardTopic');
-  const newFlashcardBtn = document.getElementById('newFlashcardBtn');
-  const flashcardDeck = document.querySelector('.flashcard-deck');
+  const generateFlashcardsBtn = document.getElementById('generateFlashcardsBtn');
+  const flashcardsContainer = document.getElementById('flashcardsContainer');
   const prevCardBtn = document.getElementById('prevCardBtn');
   const nextCardBtn = document.getElementById('nextCardBtn');
   const cardCounter = document.getElementById('cardCounter');
@@ -53,13 +53,18 @@ document.addEventListener('DOMContentLoaded', () => {
   
   // Generate flashcards
   const generateFlashcards = async () => {
-    if (!flashcardDeck) return;
-    
-    // Show loading state
-    flashcardDeck.innerHTML = '<div class="loading-spinner"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div></div>';
-    
     try {
-      const topic = flashcardTopic ? flashcardTopic.value : '';
+      // Show loading state
+      flashcardsContainer.innerHTML = `
+        <div class="text-center">
+          <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+          </div>
+          <p>Generating flashcards...</p>
+        </div>
+      `;
+      
+      const topic = flashcardTopic.value;
       
       const response = await fetch(`${getApiBase()}/flashcards`, {
         method: 'POST',
@@ -74,46 +79,90 @@ document.addEventListener('DOMContentLoaded', () => {
       }
       
       const data = await response.json();
-      
-      // Save flashcards
       flashcards = data.flashcards || [];
       
-      // Reset current index
-      currentCardIndex = 0;
+      if (flashcards.length === 0) {
+        flashcardsContainer.innerHTML = `
+          <div class="alert alert-info">
+            No flashcards were generated. Try a different topic.
+          </div>
+        `;
+        return;
+      }
       
-      // Display flashcards
-      displayCurrentCard();
-      updateCardCounter();
+      // Display the flashcards
+      displayFlashcard(0);
     } catch (error) {
       console.error('Error generating flashcards:', error);
-      flashcardDeck.innerHTML = '<div class="alert alert-danger">Failed to generate flashcards. Please try again.</div>';
+      flashcardsContainer.innerHTML = `
+        <div class="alert alert-danger">
+          Error generating flashcards. Please try again later.
+        </div>
+      `;
     }
   };
   
   // Display current flashcard
-  const displayCurrentCard = () => {
-    if (!flashcardDeck || flashcards.length === 0) return;
+  const displayFlashcard = (index) => {
+    if (!flashcards.length) return;
     
-    const card = flashcards[currentCardIndex];
+    currentCardIndex = index;
+    const card = flashcards[index];
     
-    flashcardDeck.innerHTML = `
-      <div class="flashcard">
-        <div class="flashcard-inner">
-          <div class="flashcard-front">
-            <p>${card.front || card.question}</p>
+    const html = `
+      <div class="card mb-3">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <span>Card ${index + 1} of ${flashcards.length}</span>
+          <div class="btn-group">
+            <button class="btn btn-sm btn-outline-primary flip-card-btn">Flip Card</button>
           </div>
-          <div class="flashcard-back">
-            <p>${card.back || card.answer}</p>
+        </div>
+        <div class="card-body flashcard">
+          <div class="flashcard-inner">
+            <div class="flashcard-front">
+              <h5 class="card-title">Question</h5>
+              <p class="card-text">${card.front || card.question}</p>
+            </div>
+            <div class="flashcard-back">
+              <h5 class="card-title">Answer</h5>
+              <p class="card-text">${card.back || card.answer}</p>
+            </div>
           </div>
+        </div>
+        <div class="card-footer d-flex justify-content-between">
+          <button class="btn btn-primary prev-card-btn" ${index === 0 ? 'disabled' : ''}>Previous</button>
+          <button class="btn btn-primary next-card-btn" ${index === flashcards.length - 1 ? 'disabled' : ''}>Next</button>
         </div>
       </div>
     `;
     
-    // Make flashcard flippable
-    const flashcard = flashcardDeck.querySelector('.flashcard');
-    if (flashcard) {
-      flashcard.addEventListener('click', () => {
-        flashcard.classList.toggle('flipped');
+    flashcardsContainer.innerHTML = html;
+    
+    // Add event listeners
+    const flipBtn = flashcardsContainer.querySelector('.flip-card-btn');
+    const prevBtn = flashcardsContainer.querySelector('.prev-card-btn');
+    const nextBtn = flashcardsContainer.querySelector('.next-card-btn');
+    const flashcardEl = flashcardsContainer.querySelector('.flashcard');
+    
+    if (flipBtn) {
+      flipBtn.addEventListener('click', () => {
+        flashcardEl.classList.toggle('flipped');
+      });
+    }
+    
+    if (prevBtn) {
+      prevBtn.addEventListener('click', () => {
+        if (currentCardIndex > 0) {
+          displayFlashcard(currentCardIndex - 1);
+        }
+      });
+    }
+    
+    if (nextBtn) {
+      nextBtn.addEventListener('click', () => {
+        if (currentCardIndex < flashcards.length - 1) {
+          displayFlashcard(currentCardIndex + 1);
+        }
       });
     }
   };
@@ -129,35 +178,25 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   };
   
-  // Previous card
-  const showPreviousCard = () => {
-    if (flashcards.length === 0) return;
-    
-    currentCardIndex = (currentCardIndex - 1 + flashcards.length) % flashcards.length;
-    displayCurrentCard();
-    updateCardCounter();
-  };
-  
-  // Next card
-  const showNextCard = () => {
-    if (flashcards.length === 0) return;
-    
-    currentCardIndex = (currentCardIndex + 1) % flashcards.length;
-    displayCurrentCard();
-    updateCardCounter();
-  };
-  
   // Event listeners
-  if (newFlashcardBtn) {
-    newFlashcardBtn.addEventListener('click', generateFlashcards);
+  if (generateFlashcardsBtn) {
+    generateFlashcardsBtn.addEventListener('click', generateFlashcards);
   }
   
   if (prevCardBtn) {
-    prevCardBtn.addEventListener('click', showPreviousCard);
+    prevCardBtn.addEventListener('click', () => {
+      if (currentCardIndex > 0) {
+        displayFlashcard(currentCardIndex - 1);
+      }
+    });
   }
   
   if (nextCardBtn) {
-    nextCardBtn.addEventListener('click', showNextCard);
+    nextCardBtn.addEventListener('click', () => {
+      if (currentCardIndex < flashcards.length - 1) {
+        displayFlashcard(currentCardIndex + 1);
+      }
+    });
   }
   
   // Initialize

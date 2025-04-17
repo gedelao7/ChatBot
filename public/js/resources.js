@@ -4,6 +4,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const videoSelector = document.getElementById('videoSelector');
   const videoPlayer = document.querySelector('.video-player');
   const resourceDescription = document.querySelector('.resource-description');
+  const resourcesContainer = document.getElementById('resourcesContainer');
   
   // State variables
   let resources = [];
@@ -19,20 +20,34 @@ document.addEventListener('DOMContentLoaded', () => {
   // Fetch external resources
   const fetchResources = async () => {
     try {
+      if (!resourcesContainer) return;
+      
+      // Show loading state
+      resourcesContainer.innerHTML = `
+        <div class="text-center">
+          <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+          </div>
+          <p>Loading resources...</p>
+        </div>
+      `;
+      
       const response = await fetch(`${getApiBase()}/videos`);
       if (!response.ok) {
         throw new Error('Failed to fetch resources');
       }
       
       const data = await response.json();
-      resources = data.videos || [];
-      
-      // Filter resources by type
-      filterResourcesByType();
+      displayResources(data.videos || []);
     } catch (error) {
       console.error('Error fetching resources:', error);
-      if (videoSelector) {
-        videoSelector.innerHTML = '<option value="">Error loading resources</option>';
+      
+      if (resourcesContainer) {
+        resourcesContainer.innerHTML = `
+          <div class="alert alert-danger">
+            Error loading resources. Please try again later.
+          </div>
+        `;
       }
     }
   };
@@ -121,6 +136,52 @@ document.addEventListener('DOMContentLoaded', () => {
       `;
     }
   };
+  
+  // Function to display resources
+  function displayResources(resources) {
+    if (!resourcesContainer || !resources.length) {
+      resourcesContainer.innerHTML = `
+        <div class="alert alert-info">
+          No resources available at this time.
+        </div>
+      `;
+      return;
+    }
+    
+    let html = '<div class="row">';
+    
+    resources.forEach(resource => {
+      const isVideo = resource.resourceType === 'video';
+      const icon = isVideo ? 
+        '<i class="bi bi-play-circle-fill text-danger fs-1"></i>' : 
+        '<i class="bi bi-globe fs-1 text-primary"></i>';
+        
+      html += `
+        <div class="col-md-6 mb-4">
+          <div class="card h-100">
+            <div class="card-header d-flex align-items-center">
+              <span class="me-2">${icon}</span>
+              <h5 class="card-title mb-0">${resource.title}</h5>
+            </div>
+            <div class="card-body">
+              <p class="card-text">${resource.transcript}</p>
+              <div class="text-end">
+                <a href="${resource.videoUrl}" class="btn btn-primary" target="_blank">
+                  ${isVideo ? 'Watch Video' : 'Visit Website'}
+                </a>
+              </div>
+            </div>
+            <div class="card-footer text-muted">
+              <small>Added: ${new Date(resource.dateAdded).toLocaleDateString()}</small>
+            </div>
+          </div>
+        </div>
+      `;
+    });
+    
+    html += '</div>';
+    resourcesContainer.innerHTML = html;
+  }
   
   // Event listeners
   if (resourceType) {

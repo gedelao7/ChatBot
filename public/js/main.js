@@ -4,7 +4,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // DOM Elements
   const chatWidgetButton = document.getElementById('chatWidgetButton');
   const chatWidgetClose = document.getElementById('chatWidgetClose');
-  const chatWidgetWindow = document.getElementById('chatWidgetWindow');
+  const chatWidget = document.getElementById('chatWidget');
   const userInput = document.getElementById('userInput');
   const sendBtn = document.getElementById('sendBtn');
   const chatMessages = document.getElementById('chatMessages');
@@ -21,34 +21,35 @@ document.addEventListener('DOMContentLoaded', () => {
   let isWidgetOpen = false;
   
   // Toggle chat widget
-  function toggleChatWidget() {
-    console.log('Toggle widget called, current state:', isWidgetOpen);
-    if (isWidgetOpen) {
-      chatWidgetWindow.classList.remove('open');
+  function toggleChatWidget(visible) {
+    console.log('Toggle widget called, current state:', visible);
+    if (visible) {
+      chatWidget.style.display = 'flex';
       setTimeout(() => {
-        chatWidgetWindow.style.display = 'none';
-      }, 300);
+        chatWidget.style.opacity = '1';
+        chatWidget.style.transform = 'translateY(0)';
+      }, 50);
     } else {
-      chatWidgetWindow.style.display = 'flex';
+      chatWidget.style.opacity = '0';
+      chatWidget.style.transform = 'translateY(20px)';
       setTimeout(() => {
-        chatWidgetWindow.classList.add('open');
-      }, 10);
+        chatWidget.style.display = 'none';
+      }, 300);
     }
-    isWidgetOpen = !isWidgetOpen;
   }
   
   // Add event listeners
   if (chatWidgetButton) {
     chatWidgetButton.addEventListener('click', () => {
       console.log('Chat button clicked');
-      toggleChatWidget();
+      toggleChatWidget(chatWidget.style.display !== 'flex');
     });
   }
   
   if (chatWidgetClose) {
     chatWidgetClose.addEventListener('click', () => {
       console.log('Close button clicked');
-      toggleChatWidget();
+      toggleChatWidget(false);
     });
   }
   
@@ -57,7 +58,8 @@ document.addEventListener('DOMContentLoaded', () => {
     bubble.addEventListener('click', () => {
       const action = bubble.dataset.action;
       console.log('Suggestion clicked:', action);
-      alert('You clicked: ' + action);
+      userInput.value = action;
+      sendMessage();
     });
   });
   
@@ -94,13 +96,8 @@ document.addEventListener('DOMContentLoaded', () => {
     appendMessage('Thinking...', 'system');
     
     try {
-      // Get the base URL for API endpoints
-      const apiBase = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
-        ? '/api' // Development
-        : '/.netlify/functions/api'; // Production on Netlify
-      
       // Send request to backend
-      const response = await fetch(`${apiBase}/chat`, {
+      const response = await fetch('/.netlify/functions/api/chat', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -163,6 +160,6 @@ document.addEventListener('DOMContentLoaded', () => {
   // Show the chat widget by default
   setTimeout(() => {
     console.log('Auto-opening chat widget');
-    toggleChatWidget();
+    toggleChatWidget(true);
   }, 1000);
 }); 

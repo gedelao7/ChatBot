@@ -1,219 +1,252 @@
-document.addEventListener('DOMContentLoaded', () => {
-  // DOM Elements
-  const quizTopic = document.getElementById('quizTopic');
-  const quizDifficulty = document.getElementById('quizDifficulty');
-  const newQuizBtn = document.getElementById('newQuizBtn');
-  const quizContent = document.querySelector('.quiz-content');
-  const submitQuizBtn = document.getElementById('submitQuizBtn');
-  const nextQuestionBtn = document.getElementById('nextQuestionBtn');
-  
-  // State variables
-  let quizQuestions = [];
-  let currentQuestionIndex = 0;
-  let userAnswers = [];
-  
-  // Get the base URL for API endpoints
-  const getApiBase = () => {
-    return window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
-      ? '/api' // Development
-      : '/.netlify/functions/api'; // Production on Netlify
-  };
-  
-  // Fetch topics
-  const fetchTopics = async () => {
-    try {
-      const response = await fetch(`${getApiBase()}/topics`);
-      if (!response.ok) {
-        throw new Error('Failed to fetch topics');
-      }
-      
-      const data = await response.json();
-      populateTopics(data.topics);
-    } catch (error) {
-      console.error('Error fetching topics:', error);
-    }
-  };
-  
-  // Populate topic dropdown
-  const populateTopics = (topics) => {
-    if (!quizTopic) return;
+document.addEventListener('DOMContentLoaded', function() {
+    const quizTopic = document.getElementById('quizTopic');
+    const quizDifficulty = document.getElementById('quizDifficulty');
+    const generateQuizBtn = document.getElementById('generateQuizBtn');
+    const quizContainer = document.getElementById('quizContainer');
     
-    // Clear existing options except the first one
-    while (quizTopic.options.length > 1) {
-      quizTopic.remove(1);
+    let questions = [];
+    let currentQuestionIndex = 0;
+    let userAnswers = [];
+    
+    // Function to fetch topics
+    async function fetchTopics() {
+        try {
+            const response = await fetch('/.netlify/functions/api/topics');
+            if (!response.ok) {
+                throw new Error('Failed to fetch topics');
+            }
+            
+            const data = await response.json();
+            
+            // Populate topics dropdown
+            data.topics.forEach(topic => {
+                const option = document.createElement('option');
+                option.value = topic.id;
+                option.textContent = topic.name;
+                quizTopic.appendChild(option);
+            });
+        } catch (error) {
+            console.error('Error fetching topics:', error);
+        }
     }
     
-    // Add new options
-    topics.forEach(topic => {
-      const option = document.createElement('option');
-      option.value = topic.id;
-      option.textContent = topic.name;
-      quizTopic.appendChild(option);
-    });
-  };
-  
-  // Generate quiz
-  const generateQuiz = async () => {
-    if (!quizContent) return;
-    
-    // Show loading state
-    quizContent.innerHTML = '<div class="loading-spinner"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div></div>';
-    
-    try {
-      const topic = quizTopic ? quizTopic.value : '';
-      const difficulty = quizDifficulty ? quizDifficulty.value : 'medium';
-      
-      const response = await fetch(`${getApiBase()}/quiz`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ topic, difficulty })
-      });
-      
-      if (!response.ok) {
-        throw new Error('Failed to generate quiz');
-      }
-      
-      const data = await response.json();
-      
-      // Save questions
-      quizQuestions = data.questions || [];
-      
-      // Reset state
-      currentQuestionIndex = 0;
-      userAnswers = new Array(quizQuestions.length).fill(null);
-      
-      // Display first question
-      displayCurrentQuestion();
-      updateSubmitButton();
-    } catch (error) {
-      console.error('Error generating quiz:', error);
-      quizContent.innerHTML = '<div class="alert alert-danger">Failed to generate quiz. Please try again.</div>';
+    // Function to generate quiz
+    async function generateQuiz() {
+        try {
+            // Show loading state
+            quizContainer.innerHTML = `
+                <div class="text-center">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p>Generating quiz...</p>
+                </div>
+            `;
+            
+            const topic = quizTopic.value;
+            const difficulty = quizDifficulty.value;
+            
+            const response = await fetch('/.netlify/functions/api/quiz', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ topic, difficulty })
+            });
+            
+            if (!response.ok) {
+                throw new Error('Failed to generate quiz');
+            }
+            
+            const data = await response.json();
+            questions = data.questions || [];
+            
+            if (questions.length === 0) {
+                quizContainer.innerHTML = `
+                    <div class="alert alert-info">
+                        No questions were generated. Try a different topic or difficulty.
+                    </div>
+                `;
+                return;
+            }
+            
+            // Reset quiz state
+            currentQuestionIndex = 0;
+            userAnswers = Array(questions.length).fill(null);
+            
+            // Display the first question
+            displayQuestion(0);
+        } catch (error) {
+            console.error('Error generating quiz:', error);
+            quizContainer.innerHTML = `
+                <div class="alert alert-danger">
+                    Error generating quiz. Please try again later.
+                </div>
+            `;
+        }
     }
-  };
-  
-  // Display current question
-  const displayCurrentQuestion = () => {
-    if (!quizContent || quizQuestions.length === 0) return;
     
-    const question = quizQuestions[currentQuestionIndex];
-    
-    quizContent.innerHTML = `
-      <div class="quiz-question">
-        <h4>Question ${currentQuestionIndex + 1} of ${quizQuestions.length}</h4>
-        <p>${question.question}</p>
-        <div class="quiz-options">
-          ${question.options.map((option, index) => `
-            <div class="form-check">
-              <input class="form-check-input" type="radio" name="quiz${currentQuestionIndex}" 
-                id="q${currentQuestionIndex}o${index}" value="${index}" 
-                ${userAnswers[currentQuestionIndex] === index ? 'checked' : ''}>
-              <label class="form-check-label" for="q${currentQuestionIndex}o${index}">
-                ${option}
-              </label>
+    // Function to display a question
+    function displayQuestion(index) {
+        if (!questions.length) return;
+        
+        currentQuestionIndex = index;
+        const question = questions[index];
+        
+        let optionsHTML = '';
+        question.options.forEach((option, i) => {
+            optionsHTML += `
+                <div class="form-check mb-2">
+                    <input class="form-check-input" type="radio" name="quizOption" id="option${i}" value="${i}" ${userAnswers[index] === i ? 'checked' : ''}>
+                    <label class="form-check-label" for="option${i}">${option}</label>
+                </div>
+            `;
+        });
+        
+        const html = `
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <span>Question ${index + 1} of ${questions.length}</span>
+                    <span class="badge bg-${userAnswers[index] !== null ? (userAnswers[index] === question.correctIndex ? 'success' : 'danger') : 'secondary'}">
+                        ${userAnswers[index] !== null ? (userAnswers[index] === question.correctIndex ? 'Correct' : 'Incorrect') : 'Unanswered'}
+                    </span>
+                </div>
+                <div class="card-body">
+                    <h5 class="card-title">${question.question}</h5>
+                    <div class="options-container">
+                        ${optionsHTML}
+                    </div>
+                </div>
+                <div class="card-footer d-flex justify-content-between">
+                    <button class="btn btn-primary prev-question-btn" ${index === 0 ? 'disabled' : ''}>Previous</button>
+                    <button class="btn btn-success check-answer-btn" ${userAnswers[index] !== null ? 'disabled' : ''}>Check Answer</button>
+                    <button class="btn btn-primary next-question-btn" ${index === questions.length - 1 ? 'disabled' : ''}>Next</button>
+                </div>
             </div>
-          `).join('')}
-        </div>
-      </div>
-      <div class="quiz-navigation mt-3">
-        <button id="submitQuizBtn" class="btn btn-success">Submit Answer</button>
-        <button id="nextQuestionBtn" class="btn btn-primary ms-2" ${currentQuestionIndex >= quizQuestions.length - 1 ? 'disabled' : ''}>
-          Next Question
-        </button>
-      </div>
-    `;
-    
-    // Re-attach event listeners
-    document.getElementById('submitQuizBtn').addEventListener('click', submitAnswer);
-    document.getElementById('nextQuestionBtn').addEventListener('click', nextQuestion);
-    
-    // Attach radio button listeners
-    document.querySelectorAll(`input[name="quiz${currentQuestionIndex}"]`).forEach(radio => {
-      radio.addEventListener('change', () => {
-        userAnswers[currentQuestionIndex] = parseInt(radio.value);
-        updateSubmitButton();
-      });
-    });
-  };
-  
-  // Update submit button state
-  const updateSubmitButton = () => {
-    const submitBtn = document.getElementById('submitQuizBtn');
-    if (!submitBtn) return;
-    
-    if (userAnswers[currentQuestionIndex] !== null) {
-      submitBtn.disabled = false;
-    } else {
-      submitBtn.disabled = true;
-    }
-  };
-  
-  // Submit answer
-  const submitAnswer = () => {
-    if (quizQuestions.length === 0) return;
-    
-    const question = quizQuestions[currentQuestionIndex];
-    const userAnswer = userAnswers[currentQuestionIndex];
-    
-    if (userAnswer === null) return;
-    
-    // Get all option labels
-    const optionLabels = document.querySelectorAll(`label[for^="q${currentQuestionIndex}o"]`);
-    
-    // Highlight correct and incorrect answers
-    optionLabels.forEach((label, index) => {
-      const optionInput = document.getElementById(`q${currentQuestionIndex}o${index}`);
-      
-      if (index === question.correctIndex) {
-        // Correct answer
-        label.classList.add('text-success', 'fw-bold');
-        optionInput.disabled = true;
-      } else if (index === userAnswer) {
-        // Incorrect answer selected by user
-        label.classList.add('text-danger', 'text-decoration-line-through');
-        optionInput.disabled = true;
-      } else {
-        // Other incorrect answers
-        optionInput.disabled = true;
-      }
-    });
-    
-    // Disable submit button
-    const submitBtn = document.getElementById('submitQuizBtn');
-    if (submitBtn) {
-      submitBtn.disabled = true;
+            ${index === questions.length - 1 && userAnswers.every(a => a !== null) ? 
+                `<div class="text-center mt-3">
+                    <button class="btn btn-lg btn-primary show-results-btn">Show Results</button>
+                </div>` : ''}
+        `;
+        
+        quizContainer.innerHTML = html;
+        
+        // Add event listeners
+        const prevBtn = quizContainer.querySelector('.prev-question-btn');
+        const nextBtn = quizContainer.querySelector('.next-question-btn');
+        const checkBtn = quizContainer.querySelector('.check-answer-btn');
+        const showResultsBtn = quizContainer.querySelector('.show-results-btn');
+        const optionInputs = quizContainer.querySelectorAll('input[name="quizOption"]');
+        
+        if (prevBtn) {
+            prevBtn.addEventListener('click', () => {
+                if (currentQuestionIndex > 0) {
+                    displayQuestion(currentQuestionIndex - 1);
+                }
+            });
+        }
+        
+        if (nextBtn) {
+            nextBtn.addEventListener('click', () => {
+                if (currentQuestionIndex < questions.length - 1) {
+                    displayQuestion(currentQuestionIndex + 1);
+                }
+            });
+        }
+        
+        if (checkBtn) {
+            checkBtn.addEventListener('click', () => {
+                const selectedOption = quizContainer.querySelector('input[name="quizOption"]:checked');
+                if (selectedOption) {
+                    userAnswers[currentQuestionIndex] = parseInt(selectedOption.value);
+                    displayQuestion(currentQuestionIndex);
+                }
+            });
+        }
+        
+        if (showResultsBtn) {
+            showResultsBtn.addEventListener('click', showResults);
+        }
+        
+        optionInputs.forEach(input => {
+            input.addEventListener('change', () => {
+                const checkBtn = quizContainer.querySelector('.check-answer-btn');
+                if (checkBtn) {
+                    checkBtn.disabled = false;
+                }
+            });
+        });
     }
     
-    // Enable next button if not the last question
-    const nextBtn = document.getElementById('nextQuestionBtn');
-    if (nextBtn && currentQuestionIndex < quizQuestions.length - 1) {
-      nextBtn.disabled = false;
+    // Function to show quiz results
+    function showResults() {
+        const correctAnswers = userAnswers.filter((answer, index) => answer === questions[index].correctIndex).length;
+        const totalQuestions = questions.length;
+        const percentage = Math.round((correctAnswers / totalQuestions) * 100);
+        
+        let resultClass = 'bg-danger';
+        if (percentage >= 80) {
+            resultClass = 'bg-success';
+        } else if (percentage >= 60) {
+            resultClass = 'bg-warning';
+        }
+        
+        let questionsHTML = '';
+        questions.forEach((question, index) => {
+            const isCorrect = userAnswers[index] === question.correctIndex;
+            
+            questionsHTML += `
+                <div class="card mb-3 ${isCorrect ? 'border-success' : 'border-danger'}">
+                    <div class="card-header ${isCorrect ? 'bg-success' : 'bg-danger'} text-white">
+                        Question ${index + 1}: ${isCorrect ? 'Correct' : 'Incorrect'}
+                    </div>
+                    <div class="card-body">
+                        <h5 class="card-title">${question.question}</h5>
+                        <div class="options-container">
+                            ${question.options.map((option, i) => {
+                                let optionClass = '';
+                                if (i === question.correctIndex) {
+                                    optionClass = 'text-success fw-bold';
+                                } else if (i === userAnswers[index] && i !== question.correctIndex) {
+                                    optionClass = 'text-danger text-decoration-line-through';
+                                }
+                                return `<p class="${optionClass}">${option}</p>`;
+                            }).join('')}
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+        
+        const html = `
+            <div class="results-container">
+                <div class="card mb-4">
+                    <div class="card-body text-center">
+                        <h4 class="card-title">Quiz Results</h4>
+                        <div class="display-1 ${resultClass} text-white rounded p-3 mb-3">${percentage}%</div>
+                        <p class="card-text lead">You got ${correctAnswers} out of ${totalQuestions} questions correct.</p>
+                        <button class="btn btn-primary retry-quiz-btn">Retry Quiz</button>
+                    </div>
+                </div>
+                <h4>Question Breakdown</h4>
+                ${questionsHTML}
+            </div>
+        `;
+        
+        quizContainer.innerHTML = html;
+        
+        // Add event listener for retry button
+        const retryBtn = quizContainer.querySelector('.retry-quiz-btn');
+        if (retryBtn) {
+            retryBtn.addEventListener('click', generateQuiz);
+        }
     }
-  };
-  
-  // Next question
-  const nextQuestion = () => {
-    if (quizQuestions.length === 0 || currentQuestionIndex >= quizQuestions.length - 1) return;
     
-    currentQuestionIndex++;
-    displayCurrentQuestion();
-    updateSubmitButton();
-  };
-  
-  // Event listeners
-  if (newQuizBtn) {
-    newQuizBtn.addEventListener('click', generateQuiz);
-  }
-  
-  if (submitQuizBtn) {
-    submitQuizBtn.addEventListener('click', submitAnswer);
-  }
-  
-  if (nextQuestionBtn) {
-    nextQuestionBtn.addEventListener('click', nextQuestion);
-  }
-  
-  // Initialize
-  fetchTopics();
+    // Add event listener to the generate button
+    if (generateQuizBtn) {
+        generateQuizBtn.addEventListener('click', generateQuiz);
+    }
+    
+    // Fetch topics on page load
+    fetchTopics();
 }); 

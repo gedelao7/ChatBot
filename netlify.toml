@@ -4,14 +4,19 @@
   functions = "functions"
 
 [dev]
-  command = "npm run dev"
+  command = "npm run netlify:dev"
   port = 8888
   publish = "public"
-  functions = "functions"
+
+# Redirects and rewrites
+[[redirects]]
+  from = "/.netlify/functions/api/*"
+  to = "/.netlify/functions/api/:splat"
+  status = 200
 
 [[redirects]]
   from = "/api/*"
-  to = "/.netlify/functions/:splat"
+  to = "/.netlify/functions/api/:splat"
   status = 200
 
 [[redirects]]
