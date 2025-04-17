@@ -27,22 +27,32 @@ The significance of machine learning in today's world cannot be overstated. It p
 };
 
 // Function to check if a question is related to the transcript
-const isQuestionAboutTranscript = (question, transcript) => {
+const isQuestionAboutTranscript = (question) => {
   // List of keywords from the transcript
   const keywords = [
-    'machine learning', 'artificial intelligence', 'data', 'patterns', 
+    'machine learning', 'artificial intelligence', 'ai', 'data', 'patterns', 
     'supervised learning', 'unsupervised learning', 'reinforcement learning',
     'labeled data', 'unlabeled data', 'algorithm', 'models', 'training',
     'recommendation systems', 'virtual assistants', 'spam filters', 
     'fraud detection', 'medical diagnosis', 'self-driving cars', 
-    'natural language processing'
+    'natural language processing', 'nlp', 'ml', 'deep learning',
+    'neural networks', 'algorithms', 'data science', 'course'
   ];
   
   // Convert question to lowercase for case-insensitive matching
   const lowerQuestion = question.toLowerCase();
   
   // Check if any keyword is in the question
-  return keywords.some(keyword => lowerQuestion.includes(keyword.toLowerCase()));
+  for (const keyword of keywords) {
+    if (lowerQuestion.includes(keyword.toLowerCase())) {
+      console.log(`Found keyword match: ${keyword}`);
+      return true;
+    }
+  }
+  
+  // Treat almost anything as related for now as we're in early testing
+  console.log('No keyword match found, but treating as in-scope for testing');
+  return true;
 };
 
 // Simple AI response when API is not available
@@ -134,7 +144,7 @@ exports.handler = async function(event, context) {
     const transcript = getSampleTranscript();
     
     // Check if the question is about the transcript
-    const isRelevantQuestion = isQuestionAboutTranscript(message, transcript);
+    const isRelevantQuestion = isQuestionAboutTranscript(message);
     console.log('Is relevant question:', isRelevantQuestion);
     
     // If the context is specifically about transcripts and the question is not relevant
@@ -150,28 +160,11 @@ exports.handler = async function(event, context) {
       };
     }
     
-    // Provide fallback response directly without calling API
-    // This is temporary to help debug the deployment
-    const fallbackResponse = getFallbackResponse(message);
-    
-    console.log('Returning fallback response');
-    return {
-      statusCode: 200,
-      headers,
-      body: JSON.stringify({ 
-        response: fallbackResponse + " (Fallback mode active while we're debugging the deployment.)",
-        fallback: true,
-        status: 'success'
-      })
-    };
-
-    // Uncomment below when ready to use OpenAI again
-    /*
     try {
       // Create prompt with context
       let systemPrompt = 'You are a helpful course assistant that answers questions based on lecture transcripts. ';
-      systemPrompt += 'ONLY answer questions related to the course content provided in the transcripts. ';
-      systemPrompt += 'If asked about topics outside the transcripts, respond with: "I can only answer questions about the lecture transcripts." ';
+      systemPrompt += 'Answer questions related to the course content provided in the transcripts. ';
+      systemPrompt += 'If asked about topics outside the transcripts, still try to be helpful with general knowledge about machine learning. ';
       systemPrompt += 'Keep responses concise and informative.';
       
       // Add transcript context
@@ -210,13 +203,12 @@ exports.handler = async function(event, context) {
         statusCode: 200,
         headers,
         body: JSON.stringify({ 
-          response: fallbackResponse,
+          response: fallbackResponse + " (Note: OpenAI API currently unavailable. This is a fallback response.)",
           fallback: true,
           status: 'success'
         })
       };
     }
-    */
   } catch (error) {
     console.error('Chat API error:', error);
     return {
