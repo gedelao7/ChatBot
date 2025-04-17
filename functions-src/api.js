@@ -1,12 +1,13 @@
 const serverless = require('serverless-http');
 const express = require('express');
-const OpenAI = require('openai');
+const { OpenAI } = require('openai');
 const cors = require('cors');
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 
+// Initialize OpenAI with API key from environment variable
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY
 });
@@ -236,5 +237,4 @@ app.get('/video/:id', (req, res) => {
   res.json(resource);
 });
 
-// Export the serverless handler
-exports.handler = serverless(app); 
+module.exports.handler = serverless(app); 

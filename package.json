@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node server/index.js",
     "dev": "nodemon server/index.js",
-    "build": "netlify-lambda build functions-src",
+    "build": "netlify-lambda build --config ./webpack.functions.js functions-src",
     "netlify:dev": "netlify dev"
   },
   "dependencies": {
@@ -18,8 +18,12 @@
     "serverless-http": "^3.2.0"
   },
   "devDependencies": {
+    "@babel/core": "^7.22.5",
+    "@babel/preset-env": "^7.22.5",
+    "babel-loader": "^9.1.2",
     "netlify-cli": "^17.15.3",
     "netlify-lambda": "^2.0.16",
-    "nodemon": "^3.0.1"
+    "nodemon": "^3.0.1",
+    "webpack-node-externals": "^3.0.0"
   }
 } 
