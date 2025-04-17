@@ -206,16 +206,18 @@ function searchTranscripts(query) {
 /**
  * Get relevant transcript content for a user query
  * @param {string} query - User query
- * @returns {Array} - Array of relevant transcript portions
+ * @returns {Array<string>} - Array of relevant transcript content strings
  */
 function getRelevantContent(query) {
   const results = searchTranscripts(query);
   
-  // Return top matches with context
-  return results.slice(0, 3).map(result => ({
-    title: result.title,
-    content: result.context
-  }));
+  // No results found
+  if (results.length === 0) {
+    return [];
+  }
+  
+  // Return top matches with context as plain strings
+  return results.slice(0, 3).map(result => result.context);
 }
 
 module.exports = {

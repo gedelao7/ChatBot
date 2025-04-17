@@ -18,12 +18,31 @@ Machine learning is a subset of artificial intelligence that focuses on building
 
 Machine learning is often categorized into three main types:
 
-1. Supervised Learning: Here, we train models on labeled data. The algorithm learns to map inputs to the correct outputs based on example pairs.
+1. Supervised Learning: Here, we train models on labeled data. The algorithm learns to map inputs to correct outputs based on example pairs.
 2. Unsupervised Learning: In this approach, we use unlabeled data and let the algorithm find structure on its own.
 3. Reinforcement Learning: This involves training agents to make sequences of decisions by receiving rewards or penalties.
 
 The significance of machine learning in today's world cannot be overstated. It powers numerous applications that we interact with daily, from recommendation systems to virtual assistants, email spam filters, fraud detection, medical diagnosis, self-driving cars, and natural language processing.`
   };
+};
+
+// Function to check if a question is related to the transcript
+const isQuestionAboutTranscript = (question, transcript) => {
+  // List of keywords from the transcript
+  const keywords = [
+    'machine learning', 'artificial intelligence', 'data', 'patterns', 
+    'supervised learning', 'unsupervised learning', 'reinforcement learning',
+    'labeled data', 'unlabeled data', 'algorithm', 'models', 'training',
+    'recommendation systems', 'virtual assistants', 'spam filters', 
+    'fraud detection', 'medical diagnosis', 'self-driving cars', 
+    'natural language processing'
+  ];
+  
+  // Convert question to lowercase for case-insensitive matching
+  const lowerQuestion = question.toLowerCase();
+  
+  // Check if any keyword is in the question
+  return keywords.some(keyword => lowerQuestion.includes(keyword.toLowerCase()));
 };
 
 exports.handler = async function(event, context) {
@@ -54,7 +73,7 @@ exports.handler = async function(event, context) {
 
     // Parse the body
     const body = JSON.parse(event.body);
-    const { message } = body;
+    const { message, context } = body;
     
     if (!message) {
       return {
@@ -64,21 +83,33 @@ exports.handler = async function(event, context) {
       };
     }
     
-    // Get sample transcript as context
+    // Get sample transcript
     const transcript = getSampleTranscript();
-    const transcriptContext = [{
-      title: transcript.title,
-      content: transcript.content
-    }];
+    
+    // Check if the question is about the transcript
+    const isRelevantQuestion = isQuestionAboutTranscript(message, transcript);
+    
+    // If the context is specifically about transcripts and the question is not relevant
+    if (context === 'transcripts' && !isRelevantQuestion) {
+      return {
+        statusCode: 200,
+        headers,
+        body: JSON.stringify({ 
+          response: "I'm sorry, I can only answer questions about the lecture transcripts. Please ask something related to the course content.",
+          outsideScope: true,
+          status: 'success'
+        })
+      };
+    }
     
     // Create prompt with context
     let systemPrompt = 'You are a helpful course assistant that answers questions based on lecture transcripts. ';
-    systemPrompt += 'Only answer questions related to the course content provided in the transcripts. ';
-    systemPrompt += 'If asked about topics outside the transcripts, politely explain that you can only answer questions about the course material. ';
+    systemPrompt += 'ONLY answer questions related to the course content provided in the transcripts. ';
+    systemPrompt += 'If asked about topics outside the transcripts, respond with: "I can only answer questions about the lecture transcripts." ';
     systemPrompt += 'Keep responses concise and informative.';
     
     // Add transcript context
-    systemPrompt += '\n\nHere is the relevant course content: ' + transcriptContext[0].content;
+    systemPrompt += '\n\nHere is the relevant course content: ' + transcript.content;
 
     // Call OpenAI API
     const completion = await openai.createChatCompletion({

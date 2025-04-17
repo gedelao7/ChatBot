@@ -1,20 +1,25 @@
 const express = require('express');
 const router = express.Router();
 const { generateFlashcards } = require('./openai');
-const { getTranscriptById } = require('./transcriptManager');
 
-// Generate flashcards
+// Flashcards endpoint
 router.post('/flashcards', async (req, res) => {
   try {
-    const { topic, count = 5 } = req.body;
+    const { topic } = req.body;
     
     // Generate flashcards
-    const flashcards = await generateFlashcards(topic, count);
+    const flashcards = await generateFlashcards(topic);
     
-    res.json({ flashcards });
+    res.json({ 
+      flashcards: flashcards || [], 
+      status: 'success' 
+    });
   } catch (error) {
-    console.error('Flashcard generation error:', error);
-    res.status(500).json({ error: 'Failed to generate flashcards' });
+    console.error('Flashcards API error:', error);
+    res.status(500).json({ 
+      error: 'Failed to generate flashcards', 
+      status: 'error' 
+    });
   }
 });
 

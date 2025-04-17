@@ -157,24 +157,47 @@ body {
 
 /* Suggestion Bubbles */
 .suggestion-container {
-    background-color: #f8f9fa;
-    padding: 15px;
-    border-radius: 10px;
+    padding: 10px 15px;
+    font-size: 0.9rem;
+    display: flex;
+    justify-content: center;
+}
+
+.suggestion-container .d-flex {
+    justify-content: center;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding-bottom: 5px;
+    max-width: 100%;
 }
 
 .suggestion-bubble {
     background-color: #e9ecef;
     color: #495057;
-    padding: 8px 15px;
+    padding: 6px 12px;
     border-radius: 20px;
-    margin-bottom: 10px;
+    margin-bottom: 0;
+    margin-right: 5px;
     cursor: pointer;
     border: none;
-    transition: background-color 0.2s;
+    transition: all 0.2s;
+    display: inline-block;
+    font-size: 0.8rem;
+    white-space: nowrap;
 }
 
 .suggestion-bubble:hover {
     background-color: #dee2e6;
+    transform: translateY(-2px);
+}
+
+.action-bubble {
+    background-color: #0d6efd;
+    color: white;
+}
+
+.action-bubble:hover {
+    background-color: #0b5ed7;
 }
 
 /* Flashcards */
@@ -243,5 +266,15 @@ body {
         height: 70vh;
         bottom: 70px;
         right: 5%;
+    }
+    
+    .suggestion-container {
+        padding: 8px;
+    }
+    
+    .suggestion-bubble {
+        padding: 5px 10px;
+        margin-right: 3px;
+        margin-bottom: 3px;
     }
 } 

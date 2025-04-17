@@ -6,16 +6,14 @@ document.addEventListener('DOMContentLoaded', () => {
   const resourceDescription = document.querySelector('.resource-description');
   const resourcesContainer = document.getElementById('resourcesContainer');
   
+  // Determine if we're running locally or on Netlify
+  const isNetlify = window.location.hostname.includes('netlify.app');
+  const apiBaseUrl = isNetlify ? '/.netlify/functions' : '/api';
+  console.log('Resources API Base URL:', apiBaseUrl);
+  
   // State variables
   let resources = [];
   let currentResource = null;
-  
-  // Get the base URL for API endpoints
-  const getApiBase = () => {
-    return window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
-      ? '/api' // Development
-      : '/.netlify/functions/api'; // Production on Netlify
-  };
   
   // Fetch external resources
   const fetchResources = async () => {
@@ -32,7 +30,7 @@ document.addEventListener('DOMContentLoaded', () => {
         </div>
       `;
       
-      const response = await fetch('/.netlify/functions/data?type=videos');
+      const response = await fetch(`${apiBaseUrl}/data?type=videos`);
       if (!response.ok) {
         throw new Error('Failed to fetch resources');
       }
@@ -86,7 +84,7 @@ document.addEventListener('DOMContentLoaded', () => {
       let resource = resources.find(r => r.id === resourceId);
       
       if (!resource) {
-        const response = await fetch(`${getApiBase()}/video/${resourceId}`);
+        const response = await fetch(`${apiBaseUrl}/video/${resourceId}`);
         if (!response.ok) {
           throw new Error('Failed to fetch resource');
         }

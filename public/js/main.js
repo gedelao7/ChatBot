@@ -1,6 +1,11 @@
 document.addEventListener('DOMContentLoaded', function() {
   console.log('JavaScript is running!');
   
+  // Determine if we're running locally or on Netlify
+  const isNetlify = window.location.hostname.includes('netlify.app');
+  const apiBaseUrl = isNetlify ? '/.netlify/functions' : '/api';
+  console.log('API Base URL:', apiBaseUrl);
+  
   // Chat widget elements
   const chatWidgetButton = document.getElementById('chatWidgetButton');
   const chatWidgetClose = document.getElementById('chatWidgetClose');
@@ -8,7 +13,7 @@ document.addEventListener('DOMContentLoaded', function() {
   const messageInput = document.getElementById('messageInput');
   const sendButton = document.getElementById('sendButton');
   const chatMessages = document.getElementById('chatMessages');
-  const suggestionBubbles = document.querySelectorAll('.suggestion-bubble');
+  const suggestionBubbles = document.querySelectorAll('.suggestion-bubble:not(.action-bubble)');
   
   console.log('Chat Widget Button:', chatWidgetButton);
   console.log('Chat Widget Close:', chatWidgetClose);
@@ -71,16 +76,21 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
   
-  // Event listeners for suggestion bubbles
-  if (suggestionBubbles) {
+  // Event listeners for suggestion bubbles (not action bubbles)
+  if (suggestionBubbles.length > 0) {
     suggestionBubbles.forEach(bubble => {
       bubble.addEventListener('click', () => {
         const message = bubble.textContent.trim();
+        console.log('Suggestion clicked:', message);
         messageInput.value = message;
         handleMessageSubmit();
       });
     });
   }
+  
+  // Initialize action bubbles to open modals
+  const actionBubbles = document.querySelectorAll('.action-bubble');
+  console.log('Action Bubbles:', actionBubbles.length);
   
   // Function to send message to backend
   async function sendMessage(message) {
@@ -93,34 +103,72 @@ document.addEventListener('DOMContentLoaded', function() {
     loadingBubble.innerHTML = '<div class="typing-indicator"><span></span><span></span><span></span></div>';
     chatMessages.appendChild(loadingBubble);
     
-    try {
-      const response = await fetch('/.netlify/functions/chat', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ message })
-      });
-      
-      if (!response.ok) {
-        throw new Error('Failed to get response');
+    // Retry logic
+    let attempts = 0;
+    const maxAttempts = 2;
+    
+    while (attempts < maxAttempts) {
+      try {
+        const response = await fetch(`${apiBaseUrl}/chat`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          },
+          body: JSON.stringify({ 
+            message: message,
+            context: 'transcripts'
+          })
+        });
+        
+        if (!response.ok) {
+          throw new Error(`Server responded with status: ${response.status}`);
+        }
+        
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+          throw new Error('Response is not JSON');
+        }
+        
+        const data = await response.json();
+        console.log('Response data:', data);
+        
+        // Remove loading indicator
+        if (chatMessages.contains(loadingBubble)) {
+          chatMessages.removeChild(loadingBubble);
+        }
+        
+        // If the response indicates it's outside the transcript scope
+        if (data.outsideScope) {
+          appendMessage("I'm sorry, I can only answer questions about the lecture transcripts. Please ask something related to the course content.", 'bot');
+        } else {
+          // Display bot response
+          const botResponse = data.response || data.message || "Sorry, I don't have an answer for that.";
+          appendMessage(botResponse, 'bot');
+        }
+        
+        // Break out of retry loop if successful
+        break;
+      } catch (error) {
+        console.error(`Attempt ${attempts + 1} error:`, error);
+        attempts++;
+        
+        // On final attempt, show error message
+        if (attempts >= maxAttempts) {
+          console.error('All attempts failed:', error);
+          
+          // Remove loading indicator
+          if (chatMessages.contains(loadingBubble)) {
+            chatMessages.removeChild(loadingBubble);
+          }
+          
+          // Show error message
+          appendMessage('Sorry, I encountered an error communicating with the server. Please try again later.', 'bot');
+        } else {
+          // Wait before retrying
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
       }
-      
-      const data = await response.json();
-      
-      // Remove loading indicator
-      chatMessages.removeChild(loadingBubble);
-      
-      // Display bot response
-      appendMessage(data.response, 'bot');
-    } catch (error) {
-      console.error('Error:', error);
-      
-      // Remove loading indicator
-      chatMessages.removeChild(loadingBubble);
-      
-      // Show error message
-      appendMessage('Sorry, I encountered an error. Please try again later.', 'bot');
     }
   }
   

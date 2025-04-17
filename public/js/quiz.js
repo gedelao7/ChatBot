@@ -4,6 +4,11 @@ document.addEventListener('DOMContentLoaded', function() {
     const generateQuizBtn = document.getElementById('generateQuizBtn');
     const quizContainer = document.getElementById('quizContainer');
     
+    // Determine if we're running locally or on Netlify
+    const isNetlify = window.location.hostname.includes('netlify.app');
+    const apiBaseUrl = isNetlify ? '/.netlify/functions' : '/api';
+    console.log('Quiz API Base URL:', apiBaseUrl);
+    
     let questions = [];
     let currentQuestionIndex = 0;
     let userAnswers = [];
@@ -11,7 +16,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Function to fetch topics
     async function fetchTopics() {
         try {
-            const response = await fetch('/.netlify/functions/data?type=topics');
+            const response = await fetch(`${apiBaseUrl}/data?type=topics`);
             if (!response.ok) {
                 throw new Error('Failed to fetch topics');
             }
@@ -46,7 +51,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const topic = quizTopic.value;
             const difficulty = quizDifficulty.value;
             
-            const response = await fetch('/.netlify/functions/quiz', {
+            const response = await fetch(`${apiBaseUrl}/quiz`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'

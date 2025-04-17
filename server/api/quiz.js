@@ -1,19 +1,25 @@
 const express = require('express');
 const router = express.Router();
-const { generateQuizQuestions } = require('./openai');
+const { generateQuiz } = require('./openai');
 
-// Generate quiz questions
+// Quiz endpoint
 router.post('/quiz', async (req, res) => {
   try {
     const { topic, difficulty = 'medium', count = 5 } = req.body;
     
     // Generate quiz questions
-    const questions = await generateQuizQuestions(topic, difficulty, count);
+    const questions = await generateQuiz(topic, difficulty, count);
     
-    res.json({ questions });
+    res.json({ 
+      questions: questions || [], 
+      status: 'success' 
+    });
   } catch (error) {
-    console.error('Quiz generation error:', error);
-    res.status(500).json({ error: 'Failed to generate quiz' });
+    console.error('Quiz API error:', error);
+    res.status(500).json({ 
+      error: 'Failed to generate quiz', 
+      status: 'error' 
+    });
   }
 });
 
