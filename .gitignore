@@ -29,4 +29,4 @@ yarn-debug.log*
 yarn-error.log*
 
 # Netlify
-.netlify/ 
+.netlify/ server/data/transcripts/DPT_6470-Cardiopulmonary_Practice.zip
