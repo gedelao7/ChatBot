@@ -1,16 +1,17 @@
 const serverless = require('serverless-http');
 const express = require('express');
-const { OpenAI } = require('openai');
+const { Configuration, OpenAIApi } = require('openai');
 const cors = require('cors');
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Initialize OpenAI with API key from environment variable
-const openai = new OpenAI({
+// Initialize OpenAI API
+const configuration = new Configuration({
   apiKey: process.env.OPENAI_API_KEY
 });
+const openai = new OpenAIApi(configuration);
 
 // Load sample transcript data
 const getSampleTranscript = () => {
@@ -58,7 +59,7 @@ app.post('/chat', async (req, res) => {
     systemPrompt += '\n\nHere is the relevant course content: ' + transcriptContext[0].content;
 
     // Call OpenAI API
-    const response = await openai.chat.completions.create({
+    const completion = await openai.createChatCompletion({
       model: 'gpt-3.5-turbo',
       messages: [
         { role: 'system', content: systemPrompt },
@@ -68,7 +69,7 @@ app.post('/chat', async (req, res) => {
       temperature: 0.7
     });
     
-    res.json({ response: response.choices[0].message.content.trim(), status: 'success' });
+    res.json({ response: completion.data.choices[0].message.content.trim(), status: 'success' });
   } catch (error) {
     console.error('Chat API error:', error);
     res.status(500).json({ error: 'Failed to get response', status: 'error' });
@@ -90,8 +91,18 @@ app.post('/flashcards', async (req, res) => {
       prompt += `\nFocus on the topic: ${topic}.`;
     }
     
+    // Add instructions to format as JSON
+    prompt += `\n\nReturn the flashcards as a JSON array in the following format:
+    {
+      "flashcards": [
+        {"front": "question1", "back": "answer1"},
+        {"front": "question2", "back": "answer2"},
+        etc.
+      ]
+    }`;
+    
     // Call OpenAI API
-    const response = await openai.chat.completions.create({
+    const completion = await openai.createChatCompletion({
       model: 'gpt-3.5-turbo',
       messages: [
         { 
@@ -101,13 +112,23 @@ app.post('/flashcards', async (req, res) => {
         { role: 'user', content: prompt }
       ],
       max_tokens: 1000,
-      temperature: 0.7,
-      response_format: { type: 'json_object' }
+      temperature: 0.7
     });
     
     // Parse response
-    const content = response.choices[0].message.content.trim();
-    const parsedResponse = JSON.parse(content);
+    const content = completion.data.choices[0].message.content.trim();
+    let parsedResponse;
+    try {
+      parsedResponse = JSON.parse(content);
+    } catch (e) {
+      // If parsing fails, try to extract JSON
+      const jsonMatch = content.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        parsedResponse = JSON.parse(jsonMatch[0]);
+      } else {
+        throw new Error('Failed to parse OpenAI response as JSON');
+      }
+    }
     
     // Format flashcards if needed
     const flashcards = parsedResponse.flashcards || [];
@@ -136,8 +157,21 @@ app.post('/quiz', async (req, res) => {
     
     prompt += `\nMake the questions ${difficulty} difficulty.`;
     
+    // Add instructions to format as JSON
+    prompt += `\n\nReturn the questions as a JSON array in the following format:
+    {
+      "questions": [
+        {
+          "question": "Question text",
+          "options": ["Option A", "Option B", "Option C", "Option D"],
+          "correctIndex": 0
+        },
+        etc.
+      ]
+    }`;
+    
     // Call OpenAI API
-    const response = await openai.chat.completions.create({
+    const completion = await openai.createChatCompletion({
       model: 'gpt-3.5-turbo',
       messages: [
         { 
@@ -147,13 +181,23 @@ app.post('/quiz', async (req, res) => {
         { role: 'user', content: prompt }
       ],
       max_tokens: 1500,
-      temperature: 0.7,
-      response_format: { type: 'json_object' }
+      temperature: 0.7
     });
     
     // Parse response
-    const content = response.choices[0].message.content.trim();
-    const parsedResponse = JSON.parse(content);
+    const content = completion.data.choices[0].message.content.trim();
+    let parsedResponse;
+    try {
+      parsedResponse = JSON.parse(content);
+    } catch (e) {
+      // If parsing fails, try to extract JSON
+      const jsonMatch = content.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        parsedResponse = JSON.parse(jsonMatch[0]);
+      } else {
+        throw new Error('Failed to parse OpenAI response as JSON');
+      }
+    }
     
     // Format questions if needed
     const questions = parsedResponse.questions || [];

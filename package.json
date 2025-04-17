@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node server/index.js",
     "dev": "nodemon server/index.js",
-    "build": "netlify-lambda build --config ./webpack.functions.js functions-src",
+    "build": "netlify-lambda build functions-src",
     "netlify:dev": "netlify dev"
   },
   "dependencies": {
@@ -14,16 +14,12 @@
     "cors": "^2.8.5",
     "dotenv": "^16.3.1",
     "express": "^4.18.2",
-    "openai": "^4.22.0",
+    "openai": "^3.3.0",
     "serverless-http": "^3.2.0"
   },
   "devDependencies": {
-    "@babel/core": "^7.22.5",
-    "@babel/preset-env": "^7.22.5",
-    "babel-loader": "^9.1.2",
     "netlify-cli": "^17.15.3",
     "netlify-lambda": "^2.0.16",
-    "nodemon": "^3.0.1",
-    "webpack-node-externals": "^3.0.0"
+    "nodemon": "^3.0.1"
   }
 } 
