@@ -24,10 +24,13 @@ exports.handler = async function(event, context) {
       };
     }
 
-    // Get the path
-    const path = event.path.split('/').pop();
+    // Parse query parameters
+    const params = event.queryStringParameters || {};
+    const type = params.type;
     
-    if (path === 'topics') {
+    console.log('Data function called with type:', type);
+    
+    if (type === 'topics') {
       // Return topics
       const topics = [
         { id: 'intro', name: 'Introduction to the Course' },
@@ -42,7 +45,7 @@ exports.handler = async function(event, context) {
         body: JSON.stringify({ topics })
       };
     } 
-    else if (path === 'videos') {
+    else if (type === 'videos') {
       // Return videos/resources
       const resources = {
         videos: [
@@ -75,7 +78,7 @@ exports.handler = async function(event, context) {
       return {
         statusCode: 404,
         headers,
-        body: JSON.stringify({ error: 'Endpoint not found' })
+        body: JSON.stringify({ error: 'Endpoint not found or type parameter missing', requestedType: type })
       };
     }
   } catch (error) {
@@ -83,7 +86,7 @@ exports.handler = async function(event, context) {
     return {
       statusCode: 500,
       headers,
-      body: JSON.stringify({ error: 'Internal server error' })
+      body: JSON.stringify({ error: 'Internal server error', message: error.message })
     };
   }
 }; 

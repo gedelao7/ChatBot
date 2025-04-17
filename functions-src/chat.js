@@ -45,6 +45,19 @@ const isQuestionAboutTranscript = (question, transcript) => {
   return keywords.some(keyword => lowerQuestion.includes(keyword.toLowerCase()));
 };
 
+// Simple AI response when API is not available
+const getFallbackResponse = (message) => {
+  const responses = [
+    "I'm a course assistant designed to help with machine learning topics.",
+    "Machine learning involves training models to recognize patterns in data.",
+    "The course covers supervised, unsupervised, and reinforcement learning.",
+    "I can help answer questions about the machine learning lectures.",
+    "The course material covers AI fundamentals and practical applications."
+  ];
+  
+  return responses[Math.floor(Math.random() * responses.length)];
+};
+
 exports.handler = async function(event, context) {
   // Enable CORS
   const headers = {
@@ -72,14 +85,31 @@ exports.handler = async function(event, context) {
     }
 
     // Parse the body
-    const body = JSON.parse(event.body);
+    let body;
+    try {
+      body = JSON.parse(event.body);
+    } catch (error) {
+      console.error('Error parsing JSON body:', error);
+      return {
+        statusCode: 400,
+        headers,
+        body: JSON.stringify({ 
+          error: 'Invalid JSON in request body',
+          status: 'error'
+        })
+      };
+    }
+    
     const { message, context } = body;
     
     if (!message) {
       return {
         statusCode: 400,
         headers,
-        body: JSON.stringify({ error: 'Message is required' })
+        body: JSON.stringify({ 
+          error: 'Message is required',
+          status: 'error'
+        })
       };
     }
     
@@ -111,28 +141,52 @@ exports.handler = async function(event, context) {
     // Add transcript context
     systemPrompt += '\n\nHere is the relevant course content: ' + transcript.content;
 
-    // Call OpenAI API
-    const completion = await openai.createChatCompletion({
-      model: 'gpt-3.5-turbo',
-      messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: message }
-      ],
-      max_tokens: 500,
-      temperature: 0.7
-    });
-    
-    return {
-      statusCode: 200,
-      headers,
-      body: JSON.stringify({ response: completion.data.choices[0].message.content.trim(), status: 'success' })
-    };
+    try {
+      // Call OpenAI API
+      const completion = await openai.createChatCompletion({
+        model: 'gpt-3.5-turbo',
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: message }
+        ],
+        max_tokens: 500,
+        temperature: 0.7
+      });
+      
+      return {
+        statusCode: 200,
+        headers,
+        body: JSON.stringify({ 
+          response: completion.data.choices[0].message.content.trim(),
+          status: 'success'
+        })
+      };
+    } catch (apiError) {
+      console.error('OpenAI API error:', apiError);
+      
+      // Provide fallback response if API call fails
+      const fallbackResponse = getFallbackResponse(message);
+      
+      return {
+        statusCode: 200,
+        headers,
+        body: JSON.stringify({ 
+          response: fallbackResponse,
+          fallback: true,
+          status: 'success'
+        })
+      };
+    }
   } catch (error) {
     console.error('Chat API error:', error);
     return {
       statusCode: 500,
       headers,
-      body: JSON.stringify({ error: 'Failed to get response', status: 'error' })
+      body: JSON.stringify({ 
+        error: 'Failed to get response',
+        message: error.message,
+        status: 'error'
+      })
     };
   }
 }; 
