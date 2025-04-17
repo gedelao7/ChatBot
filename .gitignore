@@ -36,4 +36,8 @@ Thumbs.db
 *.log
 
 # Netlify
-.netlify/ server/data/transcripts/DPT_6470-Cardiopulmonary_Practice.zip
+.netlify/
+
+# Transcript files
+server/data/transcripts/*.zip
+server/data/transcripts/DPT_6470-Cardiopulmonary_Practice.zip
