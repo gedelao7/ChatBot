@@ -1,30 +1,21 @@
 {
   "name": "course-chatbot",
   "version": "1.0.0",
-  "description": "AI-powered chatbot for course content",
-  "main": "server/index.js",
+  "description": "A chatbot for course assistance",
+  "main": "index.js",
   "scripts": {
     "start": "node server/index.js",
-    "dev": "nodemon server/index.js",
+    "dev": "netlify-lambda serve functions-src",
     "build": "netlify-lambda build functions-src",
-    "netlify:dev": "netlify dev"
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
   "dependencies": {
-    "adm-zip": "^0.5.16",
-    "body-parser": "^1.20.2",
-    "cheerio": "^1.0.0",
     "cors": "^2.8.5",
-    "dotenv": "^16.3.1",
     "express": "^4.18.2",
-    "mammoth": "^1.9.0",
-    "multer": "^1.4.5-lts.2",
-    "openai": "^3.3.0",
-    "pdf-parse": "^1.1.1",
+    "openai": "^4.28.0",
     "serverless-http": "^3.2.0"
   },
   "devDependencies": {
-    "netlify-cli": "^17.15.3",
-    "netlify-lambda": "^2.0.16",
-    "nodemon": "^3.0.1"
+    "netlify-lambda": "^2.0.16"
   }
 }
