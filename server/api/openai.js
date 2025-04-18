@@ -1,10 +1,9 @@
-const { Configuration, OpenAIApi } = require('openai');
+const OpenAI = require('openai');
 
 // Initialize OpenAI API with API key from environment variables
-const configuration = new Configuration({
+const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY
 });
-const openai = new OpenAIApi(configuration);
 
 /**
  * Generate a chat response based on user message and relevant content
@@ -27,7 +26,7 @@ async function getChatResponse(message, relevantContent) {
     }
 
     // Create chat completion
-    const completion = await openai.createChatCompletion({
+    const completion = await openai.chat.completions.create({
       model: 'gpt-3.5-turbo',
       messages: [
         { role: 'system', content: systemPrompt },
@@ -37,7 +36,7 @@ async function getChatResponse(message, relevantContent) {
       temperature: 0.7
     });
 
-    return completion.data.choices[0].message.content.trim();
+    return completion.choices[0].message.content.trim();
   } catch (error) {
     console.error('OpenAI API error:', error);
     return "I'm having trouble connecting to my knowledge base. Please try again later.";
@@ -58,7 +57,7 @@ async function generateFlashcards(topic, count = 5) {
     Format as a JSON array of objects with 'front' and 'back' properties.`;
 
     // Create chat completion
-    const completion = await openai.createChatCompletion({
+    const completion = await openai.chat.completions.create({
       model: 'gpt-3.5-turbo',
       messages: [
         { role: 'system', content: systemPrompt },
@@ -68,7 +67,7 @@ async function generateFlashcards(topic, count = 5) {
       temperature: 0.7
     });
 
-    const response = completion.data.choices[0].message.content.trim();
+    const response = completion.choices[0].message.content.trim();
     
     try {
       // Try to parse the response as JSON
@@ -133,7 +132,7 @@ async function generateQuiz(topic, difficulty = 'medium', count = 5) {
     Format as a JSON array of objects with 'question', 'options' (array), and 'correctIndex' (0-based index) properties.`;
 
     // Create chat completion
-    const completion = await openai.createChatCompletion({
+    const completion = await openai.chat.completions.create({
       model: 'gpt-3.5-turbo',
       messages: [
         { role: 'system', content: systemPrompt },
@@ -143,7 +142,7 @@ async function generateQuiz(topic, difficulty = 'medium', count = 5) {
       temperature: 0.7
     });
 
-    const response = completion.data.choices[0].message.content.trim();
+    const response = completion.choices[0].message.content.trim();
     
     try {
       // Try to parse the response as JSON

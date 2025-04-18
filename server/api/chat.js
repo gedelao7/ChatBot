@@ -1,13 +1,12 @@
 const express = require('express');
 const router = express.Router();
-const { Configuration, OpenAIApi } = require('openai');
+const OpenAI = require('openai');
 const transcriptManager = require('./transcriptManager');
 
 // Initialize OpenAI API
-const configuration = new Configuration({
+const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY
 });
-const openai = new OpenAIApi(configuration);
 
 // Function to check if a question is related to the transcript
 const isQuestionAboutTranscript = (question) => {
@@ -18,7 +17,9 @@ const isQuestionAboutTranscript = (question) => {
     const title = fullTranscript.title.toLowerCase();
     // Add transcript title words as keywords
     title.split(/\s+/).forEach(word => {
-      if (word.length > 3) transcriptKeywords.push(word);
+      if (word.length > 3 && !transcriptKeywords.includes(word)) {
+        transcriptKeywords.push(word);
+      }
     });
   });
   
@@ -104,7 +105,7 @@ router.post('/', async (req, res) => {
     }
     
     // Call OpenAI API
-    const completion = await openai.createChatCompletion({
+    const completion = await openai.chat.completions.create({
       model: "gpt-3.5-turbo",
       messages: [
         { role: "system", content: systemPrompt },
@@ -114,7 +115,7 @@ router.post('/', async (req, res) => {
       max_tokens: 500
     });
     
-    const response = completion.data.choices[0].message.content;
+    const response = completion.choices[0].message.content;
     
     res.json({
       response,
