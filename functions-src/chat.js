@@ -1,9 +1,16 @@
 const { OpenAI } = require('openai');
 const transcripts = require('./data/transcripts');
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY
-});
+// Initialize OpenAI with error handling
+let openai;
+try {
+  openai = new OpenAI({
+    apiKey: process.env.OPENAI_API_KEY
+  });
+} catch (error) {
+  console.error('Error initializing OpenAI:', error);
+  throw new Error('Failed to initialize OpenAI client');
+}
 
 // Function to check if a question is related to the transcript
 const isQuestionAboutTranscript = (question) => {
@@ -81,25 +88,74 @@ const getRelevantTranscriptContent = (question) => {
 };
 
 exports.handler = async (event, context) => {
+  console.log('Received event:', JSON.stringify(event));
+  
+  // Handle CORS preflight requests
+  if (event.httpMethod === 'OPTIONS') {
+    return {
+      statusCode: 200,
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Headers': 'Content-Type',
+        'Access-Control-Allow-Methods': 'POST, OPTIONS'
+      }
+    };
+  }
+  
   try {
-    const { message } = JSON.parse(event.body);
+    // Parse request body
+    let body;
+    try {
+      body = JSON.parse(event.body);
+    } catch (error) {
+      console.error('Error parsing request body:', error);
+      return {
+        statusCode: 400,
+        headers: {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*'
+        },
+        body: JSON.stringify({ error: 'Invalid request body' })
+      };
+    }
+    
+    const { message } = body;
     
     if (!message) {
       return {
         statusCode: 400,
+        headers: {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*'
+        },
         body: JSON.stringify({ error: 'Message is required' })
       };
     }
     
-    let response;
+    console.log('Processing message:', message);
     
-    if (message.toLowerCase().includes('create flashcards')) {
-      response = await generateFlashcards(message);
-    } else if (message.toLowerCase().includes('create quiz')) {
-      response = await generateQuiz(message);
-    } else {
-      response = await generateChatResponse(message);
+    let response;
+    try {
+      if (message.toLowerCase().includes('create flashcards')) {
+        response = await generateFlashcards(message);
+      } else if (message.toLowerCase().includes('create quiz')) {
+        response = await generateQuiz(message);
+      } else {
+        response = await generateChatResponse(message);
+      }
+    } catch (error) {
+      console.error('Error generating response:', error);
+      return {
+        statusCode: 500,
+        headers: {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*'
+        },
+        body: JSON.stringify({ error: 'Failed to generate response' })
+      };
     }
+    
+    console.log('Generated response:', response);
     
     return {
       statusCode: 200,
@@ -113,7 +169,7 @@ exports.handler = async (event, context) => {
       })
     };
   } catch (error) {
-    console.error('Error:', error);
+    console.error('Unhandled error:', error);
     return {
       statusCode: 500,
       headers: {
@@ -121,7 +177,7 @@ exports.handler = async (event, context) => {
         'Access-Control-Allow-Origin': '*'
       },
       body: JSON.stringify({
-        error: 'Failed to process request'
+        error: 'An unexpected error occurred'
       })
     };
   }
