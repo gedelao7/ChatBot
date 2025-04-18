@@ -1,40 +1,23 @@
 [build]
-  publish = "public"
   command = "npm run build"
+  publish = "public"
   functions = "functions"
 
 [dev]
-  command = "npm run netlify:dev"
+  command = "npm run dev"
   port = 8888
-  publish = "public"
+  targetPort = 3000
 
 # Redirects and rewrites
 [[redirects]]
-  from = "/api/chat"
-  to = "/.netlify/functions/chat"
+  from = "/api/*"
+  to = "/.netlify/functions/:splat"
   status = 200
 
 [[redirects]]
-  from = "/api/flashcards"
-  to = "/.netlify/functions/flashcards"
+  from = "/.netlify/functions/study-content"
+  to = "/.netlify/functions/study-content"
   status = 200
-
-[[redirects]]
-  from = "/api/quiz"
-  to = "/.netlify/functions/quiz"
-  status = 200
-
-[[redirects]]
-  from = "/api/topics"
-  to = "/.netlify/functions/data"
-  status = 200
-  query = { type = "topics" }
-
-[[redirects]]
-  from = "/api/videos"
-  to = "/.netlify/functions/data"
-  status = 200
-  query = { type = "videos" }
 
 [[redirects]]
   from = "/*"

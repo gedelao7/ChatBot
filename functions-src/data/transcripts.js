@@ -1,27 +1,17 @@
 // This file contains transcript data for use in the Netlify serverless functions
 // In a production application, this would be replaced with a proper database or storage solution
 
-const transcripts = [
+const fs = require('fs');
+const path = require('path');
+const AdmZip = require('adm-zip');
+
+// Define the path to the transcripts directory
+const transcriptsDir = path.join(__dirname, '../../server/data/transcripts');
+
+// Define default transcripts to use when no files are found
+const defaultTranscripts = [
   {
-    id: 'intro-ml',
-    title: 'Introduction to Machine Learning',
-    content: `INTRODUCTION TO MACHINE LEARNING
-LECTURE 1: FOUNDATIONS AND PRINCIPLES
-
-Machine learning is a subset of artificial intelligence that focuses on building systems that can learn from data, identify patterns, and make decisions with minimal human intervention. Unlike traditional programming where we explicitly code rules, in machine learning, we train models on data and let them discover patterns on their own.
-
-Machine learning is often categorized into three main types:
-
-1. Supervised Learning: Here, we train models on labeled data. The algorithm learns to map inputs to correct outputs based on example pairs.
-2. Unsupervised Learning: In this approach, we use unlabeled data and let the algorithm find structure on its own.
-3. Reinforcement Learning: This involves training agents to make sequences of decisions by receiving rewards or penalties.
-
-The significance of machine learning in today's world cannot be overstated. It powers numerous applications that we interact with daily, from recommendation systems to virtual assistants, email spam filters, fraud detection, medical diagnosis, self-driving cars, and natural language processing.`,
-    uploadDate: '2023-08-15T10:00:00Z',
-    fileType: 'txt'
-  },
-  {
-    id: 'cardiopulmonary',
+    id: 'cardiopulmonary-practice',
     title: 'Cardiopulmonary Practice',
     content: `CARDIOPULMONARY PRACTICE
 LECTURE SERIES: DPT 6470
@@ -60,13 +50,75 @@ KEY TOPICS:
    - Airway clearance methods
    - Cardiac rehabilitation principles
    - Pulmonary rehabilitation components
-   - Exercise prescription guidelines
+   - Exercise prescription guidelines`,
+    uploadDate: '2024-03-20T10:00:00Z',
+    fileType: 'txt'
+  },
+  {
+    id: 'machine-learning-intro',
+    title: 'Introduction to Machine Learning',
+    content: `INTRODUCTION TO MACHINE LEARNING
+LECTURE 1: FOUNDATIONS AND PRINCIPLES
 
-The effective management of cardiopulmonary conditions requires a comprehensive understanding of both cardiovascular and pulmonary systems, their interaction, and how physical therapy interventions can improve patient outcomes across acute and chronic stages of disease.`,
-    uploadDate: '2023-09-10T14:30:00Z',
+Machine learning is a subset of artificial intelligence that focuses on building systems that can learn from data, identify patterns, and make decisions with minimal human intervention. Unlike traditional programming where we explicitly code rules, in machine learning, we train models on data and let them discover patterns on their own.
+
+Machine learning is often categorized into three main types:
+
+1. Supervised Learning: Here, we train models on labeled data. The algorithm learns to map inputs to correct outputs based on example pairs.
+2. Unsupervised Learning: In this approach, we use unlabeled data and let the algorithm find structure on its own.
+3. Reinforcement Learning: This involves training agents to make sequences of decisions by receiving rewards or penalties.
+
+The significance of machine learning in today's world cannot be overstated. It powers numerous applications that we interact with daily, from recommendation systems to virtual assistants, email spam filters, fraud detection, medical diagnosis, self-driving cars, and natural language processing.`,
+    uploadDate: '2024-03-20T10:00:00Z',
     fileType: 'txt'
   }
 ];
+
+// Function to load all transcripts
+function loadTranscripts() {
+  try {
+    const files = fs.readdirSync(transcriptsDir);
+    const transcripts = [];
+    
+    files.forEach(file => {
+      if (file.endsWith('.zip')) {
+        const filePath = path.join(transcriptsDir, file);
+        const zip = new AdmZip(filePath);
+        const zipEntries = zip.getEntries();
+        
+        zipEntries.forEach(entry => {
+          if (entry.entryName.endsWith('.txt')) {
+            const content = zip.readAsText(entry);
+            const title = entry.entryName.replace('.txt', '').replace(/_/g, ' ');
+            
+            transcripts.push({
+              id: entry.entryName.replace('.txt', ''),
+              title: title,
+              content: content,
+              uploadDate: new Date().toISOString(),
+              fileType: 'txt'
+            });
+          }
+        });
+      }
+    });
+    
+    // If no transcripts were loaded from files, use the default transcripts
+    if (transcripts.length === 0) {
+      console.log('No transcripts found in directory, using default transcripts');
+      return defaultTranscripts;
+    }
+    
+    return transcripts;
+  } catch (error) {
+    console.error('Error loading transcripts:', error);
+    console.log('Using default transcripts due to error');
+    return defaultTranscripts;
+  }
+}
+
+// Load transcripts on startup
+const transcripts = loadTranscripts();
 
 /**
  * Get all transcripts
@@ -160,6 +212,7 @@ function getRelevantContent(query) {
   return results.slice(0, 3).map(result => result.context);
 }
 
+// Export functions
 module.exports = {
   getAllTranscripts,
   getTranscriptById,

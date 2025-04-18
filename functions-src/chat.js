@@ -1,18 +1,16 @@
-const { Configuration, OpenAIApi } = require('openai');
-const transcriptManager = require('./data/transcripts');
+const { OpenAI } = require('openai');
+const transcripts = require('./data/transcripts');
 
-// Initialize OpenAI API
-const configuration = new Configuration({
+const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY
 });
-const openai = new OpenAIApi(configuration);
 
 // Function to check if a question is related to the transcript
 const isQuestionAboutTranscript = (question) => {
   // Get transcript-specific keywords
   const transcriptKeywords = [];
-  transcriptManager.getAllTranscripts().forEach(transcript => {
-    const fullTranscript = transcriptManager.getTranscriptById(transcript.id);
+  transcripts.getAllTranscripts().forEach(transcript => {
+    const fullTranscript = transcripts.getTranscriptById(transcript.id);
     const title = fullTranscript.title.toLowerCase();
     // Add transcript title words as keywords
     title.split(/\s+/).forEach(word => {
@@ -30,7 +28,19 @@ const isQuestionAboutTranscript = (question) => {
     'natural language processing', 'nlp', 'ml', 'deep learning',
     'neural networks', 'algorithms', 'data science', 'course',
     'cardiopulmonary', 'heart', 'lungs', 'breathing', 'cardiac',
-    'pulmonary', 'respiratory', 'physical therapy', 'rehabilitation'
+    'pulmonary', 'respiratory', 'physical therapy', 'rehabilitation',
+    'anatomy', 'physiology', 'structure', 'function', 'blood',
+    'oxygen', 'circulation', 'vessels', 'arteries', 'veins',
+    'capillaries', 'ventilation', 'respiration', 'gas exchange',
+    'assessment', 'diagnosis', 'treatment', 'intervention',
+    'exercise', 'rehabilitation', 'pathology', 'disease',
+    'condition', 'symptoms', 'signs', 'monitoring', 'testing',
+    'organ', 'system', 'body', 'health', 'medical', 'patient',
+    'care', 'clinical', 'practice', 'doctor', 'nurse', 'hospital',
+    'medicine', 'healthcare', 'wellness', 'fitness', 'exercise',
+    'training', 'education', 'learn', 'study', 'course', 'class',
+    'lecture', 'material', 'content', 'topic', 'subject', 'field',
+    'area', 'discipline', 'specialty', 'profession', 'career'
   ];
   
   const allKeywords = [...new Set([...transcriptKeywords, ...subjectKeywords])];
@@ -46,8 +56,9 @@ const isQuestionAboutTranscript = (question) => {
     }
   }
   
-  // During testing, we'll still allow most questions
-  console.log('No keyword match found, but treating as in-scope for testing');
+  // If no keyword match found, still allow the question
+  // This is for testing purposes and to be more lenient with user questions
+  console.log('No keyword match found, but allowing question');
   return true;
 };
 
@@ -66,184 +77,139 @@ const getFallbackResponse = (message) => {
 
 // Function to get relevant transcript content for a question
 const getRelevantTranscriptContent = (question) => {
-  return transcriptManager.getRelevantContent(question);
+  return transcripts.getRelevantContent(question);
 };
 
-exports.handler = async function(event, context) {
-  // Enable CORS
-  const headers = {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Headers': 'Content-Type',
-    'Access-Control-Allow-Methods': 'POST, OPTIONS',
-    'Content-Type': 'application/json'
-  };
-  
-  // Debug info
-  console.log('Chat function called');
-  console.log('HTTP Method:', event.httpMethod);
-  
-  // Handle preflight requests
-  if (event.httpMethod === 'OPTIONS') {
-    return {
-      statusCode: 200,
-      headers
-    };
-  }
-
+exports.handler = async (event, context) => {
   try {
-    // Make sure this is a POST request
-    if (event.httpMethod !== 'POST') {
-      console.log('Method not allowed:', event.httpMethod);
-      return {
-        statusCode: 405,
-        headers,
-        body: JSON.stringify({ 
-          error: 'Method not allowed', 
-          method: event.httpMethod,
-          status: 'error'
-        })
-      };
-    }
-
-    // Parse the body
-    let body;
-    try {
-      console.log('Request body:', event.body);
-      body = JSON.parse(event.body);
-      console.log('Parsed body:', body);
-    } catch (error) {
-      console.error('Error parsing JSON body:', error);
-      return {
-        statusCode: 400,
-        headers,
-        body: JSON.stringify({ 
-          error: 'Invalid JSON in request body',
-          message: error.message,
-          status: 'error'
-        })
-      };
-    }
-    
-    const { message, context } = body;
+    const { message } = JSON.parse(event.body);
     
     if (!message) {
-      console.log('Message is required');
       return {
         statusCode: 400,
-        headers,
-        body: JSON.stringify({ 
-          error: 'Message is required',
-          status: 'error'
-        })
+        body: JSON.stringify({ error: 'Message is required' })
       };
     }
     
-    console.log('Processing message:', message);
-    console.log('Context:', context);
+    let response;
     
-    // Check if the question is about the transcript
-    const isRelevantQuestion = isQuestionAboutTranscript(message);
-    console.log('Is relevant question:', isRelevantQuestion);
-    
-    // If the context is specifically about transcripts and the question is not relevant
-    if (context === 'transcripts' && !isRelevantQuestion) {
-      return {
-        statusCode: 200,
-        headers,
-        body: JSON.stringify({ 
-          response: "I'm sorry, I can only answer questions about the lecture transcripts. Please ask something related to the course content.",
-          outsideScope: true,
-          status: 'success'
-        })
-      };
+    if (message.toLowerCase().includes('create flashcards')) {
+      response = await generateFlashcards(message);
+    } else if (message.toLowerCase().includes('create quiz')) {
+      response = await generateQuiz(message);
+    } else {
+      response = await generateChatResponse(message);
     }
     
-    try {
-      // Get relevant transcript content
-      const relevantContent = getRelevantTranscriptContent(message);
-      console.log('Relevant content found:', relevantContent.length > 0);
-      
-      // Create prompt with context
-      let systemPrompt = 'You are a helpful course assistant that answers questions based on lecture transcripts. ';
-      
-      if (relevantContent.length > 0) {
-        systemPrompt += 'Answer questions using ONLY the information from the provided transcript excerpts. ';
-        systemPrompt += 'If the information needed is not in the excerpts, say "I don\'t see that information in the lecture notes." ';
-      } else {
-        systemPrompt += 'Answer questions related to the course topics. ';
-        systemPrompt += 'For questions outside your knowledge, acknowledge the limitations of your information. ';
-      }
-      
-      systemPrompt += 'Keep responses concise and informative.';
-      
-      // Add transcript context if available
-      if (relevantContent.length > 0) {
-        systemPrompt += '\n\nHere are the relevant lecture excerpts:\n\n';
-        relevantContent.forEach((content, index) => {
-          systemPrompt += `EXCERPT ${index + 1}:\n${content}\n\n`;
-        });
-      } else {
-        // Add general transcript summaries
-        systemPrompt += '\n\nHere are the course topics:\n\n';
-        transcriptManager.getAllTranscripts().forEach(transcript => {
-          const fullTranscript = transcriptManager.getTranscriptById(transcript.id);
-          systemPrompt += `${fullTranscript.title}:\n`;
-          
-          // Add first paragraph of each transcript as a summary
-          const firstParagraph = fullTranscript.content.split('\n\n')[0];
-          systemPrompt += `${firstParagraph}\n\n`;
-        });
-      }
-
-      console.log('Calling OpenAI API');
-      
-      // Call OpenAI API
-      const completion = await openai.createChatCompletion({
-        model: 'gpt-3.5-turbo',
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: message }
-        ],
-        max_tokens: 500,
-        temperature: 0.7
-      });
-      
-      console.log('OpenAI response received');
-      
-      return {
-        statusCode: 200,
-        headers,
-        body: JSON.stringify({ 
-          response: completion.data.choices[0].message.content.trim(),
-          status: 'success'
-        })
-      };
-    } catch (apiError) {
-      console.error('OpenAI API error:', apiError);
-      
-      // Provide fallback response if API call fails
-      const fallbackResponse = getFallbackResponse(message);
-      
-      return {
-        statusCode: 200,
-        headers,
-        body: JSON.stringify({ 
-          response: fallbackResponse + " (Note: OpenAI API currently unavailable. This is a fallback response.)",
-          fallback: true,
-          status: 'error'
-        })
-      };
-    }
+    return {
+      statusCode: 200,
+      headers: {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*'
+      },
+      body: JSON.stringify({
+        response: response,
+        status: 'success'
+      })
+    };
   } catch (error) {
-    console.error('Chat API error:', error);
+    console.error('Error:', error);
     return {
       statusCode: 500,
-      headers,
-      body: JSON.stringify({ 
-        error: 'Failed to get response',
-        message: error.message,
-        status: 'error'
+      headers: {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*'
+      },
+      body: JSON.stringify({
+        error: 'Failed to process request'
       })
     };
   }
-}; 
+};
+
+async function generateFlashcards(message) {
+  const prompt = `
+    Create 5 flashcards about the heart based on the lecture transcript.
+    Format each flashcard as:
+    Front: [Question]
+    Back: [Answer]
+    
+    Separate each flashcard with a blank line.
+    Keep questions and answers concise and clear.
+  `;
+  
+  const response = await openai.chat.completions.create({
+    model: "gpt-3.5-turbo",
+    messages: [
+      {
+        role: "system",
+        content: "You are a helpful assistant that creates educational flashcards."
+      },
+      {
+        role: "user",
+        content: prompt
+      }
+    ],
+    temperature: 0.7
+  });
+  
+  return response.choices[0].message.content;
+}
+
+async function generateQuiz(message) {
+  const prompt = `
+    Create 5 multiple-choice questions about the heart based on the lecture transcript.
+    Format each question as:
+    [Question]
+    a) [Option 1]
+    b) [Option 2]
+    c) [Option 3]
+    d) [Option 4]
+    
+    Separate each question with a blank line.
+    Make sure the first option (a) is always the correct answer.
+  `;
+  
+  const response = await openai.chat.completions.create({
+    model: "gpt-3.5-turbo",
+    messages: [
+      {
+        role: "system",
+        content: "You are a helpful assistant that creates educational quiz questions."
+      },
+      {
+        role: "user",
+        content: prompt
+      }
+    ],
+    temperature: 0.7
+  });
+  
+  return response.choices[0].message.content;
+}
+
+async function generateChatResponse(message) {
+  const prompt = `
+    Answer the following question based on the lecture transcript about the heart.
+    If the question is not related to the transcript, say so politely.
+    
+    Question: ${message}
+  `;
+  
+  const response = await openai.chat.completions.create({
+    model: "gpt-3.5-turbo",
+    messages: [
+      {
+        role: "system",
+        content: "You are a helpful assistant that answers questions about the lecture content."
+      },
+      {
+        role: "user",
+        content: prompt
+      }
+    ],
+    temperature: 0.7
+  });
+  
+  return response.choices[0].message.content;
+} 
