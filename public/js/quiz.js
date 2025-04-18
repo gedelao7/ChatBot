@@ -5,9 +5,9 @@ document.addEventListener('DOMContentLoaded', function() {
     const quizContainer = document.getElementById('quizContainer');
     
     // Determine if we're running locally or on Netlify
-    const isNetlify = window.location.hostname.includes('netlify.app');
-    const apiBaseUrl = isNetlify ? '/.netlify/functions' : '/api';
-    console.log('Quiz API Base URL:', apiBaseUrl);
+    const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+    const API_BASE_URL = isLocal ? 'http://localhost:3000/api' : '/.netlify/functions';
+    console.log('Quiz API Base URL:', API_BASE_URL);
     
     let questions = [];
     let currentQuestionIndex = 0;
@@ -16,7 +16,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Function to fetch topics
     async function fetchTopics() {
         try {
-            const response = await fetch(`${apiBaseUrl}/data?type=topics`);
+            const response = await fetch(`${API_BASE_URL}/data?type=topics`);
             if (!response.ok) {
                 throw new Error('Failed to fetch topics');
             }
@@ -51,7 +51,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const topic = quizTopic.value;
             const difficulty = quizDifficulty.value;
             
-            const response = await fetch(`${apiBaseUrl}/quiz`, {
+            const response = await fetch(`${API_BASE_URL}/quiz`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'

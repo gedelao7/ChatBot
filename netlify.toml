@@ -1,12 +1,13 @@
 [build]
   command = "npm run build"
-  publish = "public"
   functions = "functions"
+  publish = "public"
 
 [dev]
   command = "npm run dev"
-  port = 8888
+  port = 3000
   targetPort = 3000
+  autoLaunch = true
 
 # Redirects and rewrites
 [[redirects]]
@@ -15,11 +16,26 @@
   status = 200
 
 [[redirects]]
-  from = "/.netlify/functions/study-content"
+  from = "/study-content"
   to = "/.netlify/functions/study-content"
   status = 200
 
 [[redirects]]
-  from = "/*"
-  to = "/index.html"
+  from = "/chat"
+  to = "/.netlify/functions/chat"
+  status = 200
+
+[[redirects]]
+  from = "/data"
+  to = "/.netlify/functions/data"
+  status = 200
+
+[[redirects]]
+  from = "/flashcards"
+  to = "/.netlify/functions/flashcards"
+  status = 200
+
+[[redirects]]
+  from = "/quiz"
+  to = "/.netlify/functions/quiz"
   status = 200 

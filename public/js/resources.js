@@ -7,9 +7,9 @@ document.addEventListener('DOMContentLoaded', () => {
   const resourcesContainer = document.getElementById('resourcesContainer');
   
   // Determine if we're running locally or on Netlify
-  const isNetlify = window.location.hostname.includes('netlify.app');
-  const apiBaseUrl = isNetlify ? '/.netlify/functions' : '/api';
-  console.log('Resources API Base URL:', apiBaseUrl);
+  const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+  const API_BASE_URL = isLocal ? 'http://localhost:3000/api' : '/.netlify/functions';
+  console.log('Resources API Base URL:', API_BASE_URL);
   
   // State variables
   let resources = [];
@@ -30,7 +30,7 @@ document.addEventListener('DOMContentLoaded', () => {
         </div>
       `;
       
-      const response = await fetch(`${apiBaseUrl}/data?type=videos`);
+      const response = await fetch(`${API_BASE_URL}/data?type=videos`);
       if (!response.ok) {
         throw new Error('Failed to fetch resources');
       }
@@ -84,7 +84,7 @@ document.addEventListener('DOMContentLoaded', () => {
       let resource = resources.find(r => r.id === resourceId);
       
       if (!resource) {
-        const response = await fetch(`${apiBaseUrl}/video/${resourceId}`);
+        const response = await fetch(`${API_BASE_URL}/video/${resourceId}`);
         if (!response.ok) {
           throw new Error('Failed to fetch resource');
         }

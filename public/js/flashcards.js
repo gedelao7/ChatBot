@@ -8,9 +8,9 @@ document.addEventListener('DOMContentLoaded', () => {
   const cardCounter = document.getElementById('cardCounter');
   
   // Determine if we're running locally or on Netlify
-  const isNetlify = window.location.hostname.includes('netlify.app');
-  const apiBaseUrl = isNetlify ? '/.netlify/functions' : '/api';
-  console.log('Flashcards API Base URL:', apiBaseUrl);
+  const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+  const API_BASE_URL = isLocal ? 'http://localhost:3000/api' : '/.netlify/functions';
+  console.log('Flashcards API Base URL:', API_BASE_URL);
   
   // State variables
   let flashcards = [];
@@ -19,7 +19,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // Function to fetch topics
   async function fetchTopics() {
     try {
-      const response = await fetch(`${apiBaseUrl}/data?type=topics`);
+      const response = await fetch(`${API_BASE_URL}/data?type=topics`);
       if (!response.ok) {
         throw new Error('Failed to fetch topics');
       }
@@ -53,7 +53,7 @@ document.addEventListener('DOMContentLoaded', () => {
       
       const topic = flashcardTopic.value;
       
-      const response = await fetch(`${apiBaseUrl}/flashcards`, {
+      const response = await fetch(`${API_BASE_URL}/flashcards`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'

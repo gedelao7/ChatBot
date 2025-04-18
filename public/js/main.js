@@ -1,8 +1,9 @@
 document.addEventListener('DOMContentLoaded', function() {
-  console.log('JavaScript is running!');
+  // Determine if we're running locally or on Netlify
+  const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+  const API_BASE_URL = isLocal ? 'http://localhost:3000/api' : '/.netlify/functions';
   
-  // API Base URL - works for both local and Netlify environments
-  const API_BASE_URL = window.location.hostname === 'localhost' ? '/api' : '/.netlify/functions';
+  console.log('JavaScript is running!');
   console.log('API Base URL:', API_BASE_URL);
   
   // Chat widget elements
@@ -107,49 +108,49 @@ document.addEventListener('DOMContentLoaded', function() {
     
     if (!message) return;
     
-    // Add user message to chat
-    appendMessage(message, 'user');
+    // Clear input
     messageInput.value = '';
+    
+    // Append user message
+    appendMessage(message, 'user');
     
     // Show loading indicator
     const loadingIndicator = document.createElement('div');
-    loadingIndicator.className = 'message loading';
-    loadingIndicator.innerHTML = '<div class="typing-indicator"><span></span><span></span><span></span></div>';
+    loadingIndicator.className = 'message bot loading';
+    loadingIndicator.innerHTML = '<div class="loading-dots"><span></span><span></span><span></span></div>';
     document.getElementById('chatMessages').appendChild(loadingIndicator);
     
     try {
-      const response = await fetch(`${API_BASE_URL}/chat`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ message })
-      });
-      
-      // Remove loading indicator
-      loadingIndicator.remove();
-      
-      if (!response.ok) {
-        throw new Error('Failed to get response');
-      }
-      
-      const data = await response.json();
-      console.log('Response data:', data);
-      
-      if (data.response) {
-        if (message.toLowerCase().includes('create flashcards')) {
-          displayFlashcards(data.response);
-        } else if (message.toLowerCase().includes('create quiz')) {
-          displayQuiz(data.response);
-        } else {
-          appendMessage(data.response, 'bot');
+        const response = await fetch(`${API_BASE_URL}/chat`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ message })
+        });
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
         }
-      } else {
-        throw new Error('No response from server');
-      }
+        
+        const data = await response.json();
+        
+        // Remove loading indicator
+        loadingIndicator.remove();
+        
+        // Handle flashcards or quiz if requested
+        if (message.toLowerCase().includes('create flashcards')) {
+            displayFlashcards(data.response);
+        } else if (message.toLowerCase().includes('create quiz')) {
+            displayQuiz(data.response);
+        } else {
+            // Regular chat response
+            appendMessage(data.response, 'bot');
+        }
     } catch (error) {
-      console.error('Error:', error);
-      appendMessage('Sorry, I encountered an error. Please try again.', 'bot error');
+        console.error('Error:', error);
+        loadingIndicator.remove();
+        appendMessage('Sorry, I encountered an error. Please try again.', 'bot');
     }
   }
   
